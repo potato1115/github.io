@@ -11,27 +11,27 @@
     .navbar {
       position: fixed;
       top: 0; left: 0; right: 0;
-      height: 60px;
-      background: white;
+      background: #fff;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      height: 60px;
       padding: 0 1em;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      z-index: 2000;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 1000;
     }
 
-    .navbar-title {
-      font-size: 20px;
+    .navbar .title {
+      font-size: 18px;
       font-weight: bold;
     }
 
-    .navbar-menu {
+    .navbar .menu {
       display: flex;
       gap: 10px;
     }
 
-    .navbar-menu button {
+    .navbar .menu button {
       padding: 6px 12px;
       font-size: 14px;
       cursor: pointer;
@@ -40,53 +40,55 @@
     .hamburger {
       display: none;
       flex-direction: column;
-      gap: 4px;
       cursor: pointer;
+      gap: 4px;
     }
 
-    .hamburger div {
+    .hamburger span {
       width: 24px;
       height: 3px;
       background: #333;
     }
 
-    .navbar-menu-mobile {
+    .menu-mobile {
       display: none;
       flex-direction: column;
-      background: white;
+      background: #fff;
       position: absolute;
       top: 60px;
       left: 0;
       right: 0;
       border-top: 1px solid #ccc;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
 
-    .navbar-menu-mobile button {
+    .menu-mobile.show {
+      display: flex;
+    }
+
+    .menu-mobile button {
       padding: 10px;
-      border-bottom: 1px solid #eee;
+      border: none;
       text-align: left;
       background: none;
-      border: none;
+      border-bottom: 1px solid #eee;
     }
 
+    /* レスポンシブ対応 */
     @media (max-width: 768px) {
-      .navbar-menu {
+      .navbar .menu {
         display: none;
       }
 
       .hamburger {
         display: flex;
       }
-
-      .navbar-menu-mobile.show {
-        display: flex;
-      }
     }
 
-    /* 地図とコンテンツはメニューの下から開始 */
-    #map { height: 60vh; margin-top: 60px; position: relative; }
-    #map { height: 60vh; position: relative; }
+    /* 地図領域：メニューの高さを考慮 */
+    #map {
+      height: 60vh;
+      margin-top: 60px;
+    }
 
     .legend-box {
       position: absolute; bottom: 10px; right: 10px;
@@ -201,8 +203,7 @@
 
   <script>
     function toggleMenu() {
-      const menu = document.getElementById("mobileMenu");
-      menu.classList.toggle("show");
+      document.getElementById("mobileMenu").classList.toggle("show");
     }
   </script>
 
