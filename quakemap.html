@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>地震情報マップ</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body { margin: 0; font-family: sans-serif; }
+
+    .navbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 60px;
+      background: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 1em;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      z-index: 2000;
+    }
+
+    .navbar-title {
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .navbar-menu {
+      display: flex;
+      gap: 10px;
+    }
+
+    .navbar-menu button {
+      padding: 6px 12px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      cursor: pointer;
+    }
+
+    .hamburger div {
+      width: 24px;
+      height: 3px;
+      background: #333;
+    }
+
+    .navbar-menu-mobile {
+      display: none;
+      flex-direction: column;
+      background: white;
+      position: absolute;
+      top: 60px;
+      left: 0;
+      right: 0;
+      border-top: 1px solid #ccc;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .navbar-menu-mobile button {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+      background: none;
+      border: none;
+    }
+
+    @media (max-width: 768px) {
+      .navbar-menu {
+        display: none;
+      }
+
+      .hamburger {
+        display: flex;
+      }
+
+      .navbar-menu-mobile.show {
+        display: flex;
+      }
+    }
+
+    /* 地図とコンテンツはメニューの下から開始 */
+    #map { height: 60vh; margin-top: 60px; position: relative; }
+    #map { height: 60vh; position: relative; }
+
+    .legend-box {
+      position: absolute; bottom: 10px; right: 10px;
+      background: rgba(255,255,255,0.95); padding: 10px;
+      border: 1px solid #ccc; font-size: 14px; z-index: 1000;
+      line-height: 1.5; box-shadow: 0 0 4px rgba(0,0,0,0.2);
+      border-radius: 4px; text-align: center;
+    }
+
+    .legend-item { padding: 4px 8px; margin: 2px 0; font-weight: bold; border-radius: 3px; }
+
+    .mode-buttons { padding: 10px; background: #f0f0f0; display: flex; gap: 10px; }
+    .mode-buttons button { font-size: 16px; padding: 6px 10px; cursor: pointer; }
+
+    .quake-info-wrapper { position: absolute; top: 60px; left: 10px; z-index: 1000; }
+    .quake-title-box {
+      background: purple; color: white; font-weight: bold;
+      font-size: 20px; padding: 10px; white-space: nowrap;
+    }
+
+    .quake-info-box {
+      background: white; padding: 15px; font-size: 15px;
+      border: 1px solid #ccc; margin-top: 10px;
+    }
+
+    .quake-info-box .max-scale { font-size: 17px; font-weight: bold; }
+    .warning-text { color: red; font-weight: bold; font-size: 16px; margin-top: 8px; }
+
+    .intensity-marker .marker-content {
+      width: 30px; height: 30px; border-radius: 50%;
+      text-align: center; line-height: 30px; font-weight: bold;
+      font-size: 14px; border: 1px solid #333;
+    }
+
+    #quakeSelectorBox { padding: 10px; background: #fff; }
+    #quakeSelect { width: 100%; height: 140px; font-size: 14px; overflow-y: scroll; }
+
+    #intensityList { padding: 1em; background: #f9f9f9; }
+    .intensity-section { margin: 1em 0; padding: 0.5em 1em; background: #fff; }
+
+    .intensity-label {
+      display: inline-block; padding: 0.3em 0.6em;
+      border-radius: 4px; margin-bottom: 0.5em; font-weight: bold;
+    }
+
+    .intensity-1  { background: rgb(60,90,130); color: white; }
+    .intensity-2  { background: rgb(30,130,230); color: white; }
+    .intensity-3  { background: rgb(120,230,220); color: black; }
+    .intensity-4  { background: rgb(255,255,150); color: black; }
+    .intensity-5- { background: rgb(255,210,0); color: black; }
+    .intensity-5+ { background: rgb(255,150,0); color: black; }
+    .intensity-6- { background: rgb(240,50,0); color: white; }
+    .intensity-6+ { background: rgb(190,0,0); color: white; }
+    .intensity-7  { background: rgb(140,0,40); color: white; }
+
+    .prefecture-label { font-weight: bold; margin-top: 0.5em; }
+    .station-list {
+      margin-left: 1em; padding-left: 1em;
+      display: block; line-height: 1.6; word-break: break-word;
+    }
+    .station-list span { display: inline-block; margin-right: 1em; }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <div class="navbar-title">地震情報マップ</div>
+    <div class="navbar-menu">
+      <button>ボタン1</button>
+      <button>ボタン2</button>
+      <button>ボタン3</button>
+      <button>ボタン4</button>
+    </div>
+    <div class="hamburger" onclick="toggleMenu()">
+      <div></div><div></div><div></div>
+    </div>
+  </div>
+  <div class="navbar-menu-mobile" id="mobileMenu">
+    <button>ボタン1</button>
+    <button>ボタン2</button>
+    <button>ボタン3</button>
+    <button>ボタン4</button>
+  </div>
+  <div id="map">
+    <div class="legend-box">
+      <div class="legend-item" style="background: #3C5A82; color: #FFFFFF;">震度1</div>
+      <div class="legend-item" style="background: #1E82E6; color: #FFFFFF;">震度2</div>
+      <div class="legend-item" style="background: #78E6DC; color: #000000;">震度3</div>
+      <div class="legend-item" style="background: #FFFF96; color: #000000;">震度4</div>
+      <div class="legend-item" style="background: #FFD200; color: #000000;">震度5弱</div>
+      <div class="legend-item" style="background: #FF9600; color: #000000;">震度5強</div>
+      <div class="legend-item" style="background: #F03200; color: #FFFFFF;">震度6弱</div>
+      <div class="legend-item" style="background: #BE0000; color: #FFFFFF;">震度6強</div>
+      <div class="legend-item" style="background: #8C0028; color: #FFFFFF;">震度7</div>
+    </div>
+  </div>
+
+  <div class="quake-info-wrapper">
+    <div id="quakeTitleBox" class="quake-title-box" style="display:none;"></div>
+    <div id="quakeInfoBox" class="quake-info-box" style="display:none;"></div>
+  </div>
+
+  <div id="quakeSelectorBox" style="display:none;">
+    <select id="quakeSelect" size="6"></select>
+  </div>
+
+  <div class="mode-buttons">
+    <button onclick="switchToLiveMode()">最新の地震情報</button>
+    <button onclick="switchToHistoryMode()">過去の地震情報</button>
+  </div>
+
+  <div id="intensityList"></div>
+
+  <script>
+    function toggleMenu() {
+      const menu = document.getElementById("mobileMenu");
+      menu.classList.toggle("show");
+    }
+  </script>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    const prefectureNames = { "1":"北海道","2":"青森県","3":"岩手県","4":"宮城県","5":"秋田県","6":"山形県","7":"福島県","8":"茨城県","9":"栃木県","10":"群馬県","11":"埼玉県","12":"千葉県","13":"東京都","14":"神奈川県","15":"新潟県","16":"富山県","17":"石川県","18":"福井県","19":"山梨県","20":"長野県","21":"岐阜県","22":"静岡県","23":"愛知県","24":"三重県","25":"滋賀県","26":"京都府","27":"大阪府","28":"兵庫県","29":"奈良県","30":"和歌山県","31":"鳥取県","32":"島根県","33":"岡山県","34":"広島県","35":"山口県","36":"徳島県","37":"香川県","38":"愛媛県","39":"高知県","40":"福岡県","41":"佐賀県","42":"長崎県","43":"熊本県","44":"大分県","45":"宮崎県","46":"鹿児島県","47":"沖縄県" };
+
+    const map = L.map('map', { zoomControl: false }).setView([36.2, 137.8], 5);
+    L.control.zoom({ position: 'bottomleft' }).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '地図：国土地理院', maxZoom: 16
+    }).addTo(map);
+
+    const epicenterIcon = L.divIcon({ html: '<div style="font-size: 36px; color: red;">×</div>', className: '', iconSize: [36,36], iconAnchor: [18,18] });
+    let quakes = [], markers = [], epicenterMarker = null, stationCoords = {};
+    let mode = "live";
+
+    async function loadStations() {
+      const res = await fetch("https://www.data.jma.go.jp/eqev/data/intens-st/stations.json");
+      const data = await res.json();
+      data.forEach(st => {
+        stationCoords[st.pref + st.name] = { lat: parseFloat(st.lat), lng: parseFloat(st.lon) };
+      });
+    }
+
+    function findStation(pref, addr) {
+      const key = pref + addr;
+      if (stationCoords[key]) return stationCoords[key];
+      for (const k in stationCoords) {
+        if (k.includes(addr)) return stationCoords[k];
+      }
+      return null;
+    }
+
+    const getColor = s => ({70:"#8C0028",60:"#BE0000",55:"#F03200",50:"#FF9600",45:"#FFD200",40:"#FFFF96",30:"#78E6DC",20:"#1E82E6",10:"#3C5A82"})[s] || "#ccc";
+    const getTextColor = s => [10,20,55,60,70].includes(s) ? "white" : "black";
+    const getLabel = s => ({10:"震度1",20:"震度2",30:"震度3",40:"震度4",45:"震度5弱",50:"震度5強",55:"震度6弱",60:"震度6強",70:"震度7"})[s] || "震度不明";
+    const getClass = s => ({10:"intensity-1",20:"intensity-2",30:"intensity-3",40:"intensity-4",45:"intensity-5-",50:"intensity-5+",55:"intensity-6-",60:"intensity-6+",70:"intensity-7"})[s] || "";
+
+    async function loadInitialQuakes() {
+      const res = await fetch("https://api.p2pquake.net/v2/jma/quake?limit=100");
+      const data = await res.json();
+      quakes = data.filter(q => q.earthquake?.time);
+      displayQuake(quakes[0]);
+      updateSelect();
+    }
+
+    function displayQuake(q) {
+      if (!q?.earthquake) return;
+      const eq = q.earthquake;
+      const time = new Date(eq.time);
+      const hour = String(time.getHours()).padStart(2,'0'), min = String(time.getMinutes()).padStart(2,'0');
+      const title = document.getElementById("quakeTitleBox"), info = document.getElementById("quakeInfoBox");
+      title.style.display = "block"; info.style.display = "block";
+      let html = "", showMarkers = false, showEpicenter = false;
+
+      const hasHypo = eq.hypocenter && eq.hypocenter.name && eq.hypocenter.name !== "調査中";
+      const hasPoints = q.points && q.points.length > 0;
+
+      if (!hasHypo && hasPoints) {
+        title.innerText = `震度速報　${hour}時${min}分頃発生`;
+        html += `<div class="max-scale">最大震度: ${eq.maxScale / 10}</div><div>震源地: 調査中</div>`;
+        showMarkers = true;
+      } else if (hasHypo && !hasPoints) {
+        title.innerText = `震源に関する情報　${hour}時${min}分ごろ発生`;
+        html += `<div>震源: ${eq.hypocenter.name}</div><div>マグニチュード: M${eq.hypocenter.magnitude}</div><div>震源の深さ: ${eq.hypocenter.depth}km</div>`;
+        showEpicenter = true;
+      } else {
+        title.innerText = `各地の震度情報　${hour}時${min}分ごろ発生`;
+        html += `<div class="max-scale">最大震度: ${eq.maxScale / 10}</div><div>震源: ${eq.hypocenter.name}</div><div>マグニチュード: M${eq.hypocenter.magnitude}</div><div>震源の深さ: ${eq.hypocenter.depth}km</div>`;
+        showMarkers = showEpicenter = true;
+      }
+
+      if (eq.warning) html += `<div class="warning-text">この地震について緊急地震速報(警報)が発表されています。</div>`;
+      info.innerHTML = html;
+
+      markers.forEach(m => map.removeLayer(m)); markers = [];
+      if (epicenterMarker) map.removeLayer(epicenterMarker), epicenterMarker = null;
+
+      if (showEpicenter && eq.hypocenter.latitude && eq.hypocenter.longitude) {
+        epicenterMarker = L.marker([eq.hypocenter.latitude, eq.hypocenter.longitude], { icon: epicenterIcon, zIndexOffset: 1000 }).addTo(map);
+        map.setView([eq.hypocenter.latitude, eq.hypocenter.longitude], 8);
+      }
+
+      const intensityMap = {};
+      if (showMarkers) {
+        q.points.forEach(p => {
+          const loc = findStation(p.pref, p.addr); if (!loc) return;
+          const icon = L.divIcon({
+            className: 'intensity-marker',
+            html: `<div class="marker-content" style="background:${getColor(p.scale)}; color:${getTextColor(p.scale)}">${p.scale / 10}</div>`,
+            iconSize: [30, 30], iconAnchor: [15, 15]
+          });
+          const m = L.marker([loc.lat, loc.lng], { icon, zIndexOffset: p.scale }).addTo(map);
+          markers.push(m);
+
+          if (!intensityMap[p.scale]) intensityMap[p.scale] = {};
+          if (!intensityMap[p.scale][p.pref]) intensityMap[p.scale][p.pref] = [];
+          intensityMap[p.scale][p.pref].push(p.addr);
+        });
+      }
+
+      const il = document.getElementById("intensityList");
+      if (showMarkers) {
+        const order = [70,60,55,50,45,40,30,20,10];
+        let html = "<h2>震度別リスト</h2>";
+        order.forEach(s => {
+          if (intensityMap[s]) {
+            html += `<div class="intensity-section"><div class="intensity-label ${getClass(s)}">${getLabel(s)}</div>`;
+            Object.entries(intensityMap[s]).forEach(([p, addrs]) => {
+              html += `<div class="prefecture-label">■ ${prefectureNames[p] || p}</div><div class="station-list">${addrs.map(a => `<span>${a}</span>`).join("　")}</div>`;
+            });
+            html += `</div>`;
+          }
+        });
+        il.innerHTML = html;
+      } else {
+        il.innerHTML = "";
+      }
+    }
+
+    function updateSelect() {
+      const s = document.getElementById("quakeSelect");
+      s.innerHTML = "";
+      quakes.forEach((q, i) => {
+        const eq = q.earthquake, t = new Date(eq.time);
+        const y = t.getFullYear(), m = ('0'+(t.getMonth()+1)).slice(-2), d = ('0'+t.getDate()).slice(-2),
+              h = ('0'+t.getHours()).slice(-2), mi = ('0'+t.getMinutes()).slice(-2);
+        const scale = eq.maxScale ? `震度${eq.maxScale / 10}` : "不明";
+        const hypo = eq.hypocenter?.name || "不明";
+        const mag = eq.hypocenter?.magnitude ? `M${eq.hypocenter.magnitude}` : "M不明";
+        const depth = eq.hypocenter?.depth ? `${eq.hypocenter.depth}km` : "深さ不明";
+        const label = `${y}年${m}月${d}日　${h}時${mi}分頃発生｜${scale}｜${hypo}｜${mag}｜${depth}`;
+        s.add(new Option(label, i));
+      });
+    }
+
+    function switchToLiveMode() {
+      mode = "live";
+      document.getElementById("quakeSelectorBox").style.display = "none";
+      loadInitialQuakes();
+    }
+
+    function switchToHistoryMode() {
+      mode = "history";
+      document.getElementById("quakeSelectorBox").style.display = "block";
+    }
+
+    (async () => {
+      await loadStations();
+      await loadInitialQuakes();
+      document.getElementById("quakeSelect").addEventListener("change", e => displayQuake(quakes[e.target.value]));
+    })();
+  </script>
+</body>
+</html>
