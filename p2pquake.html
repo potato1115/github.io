@@ -46,22 +46,12 @@
         .latest-btn { background: #333; color: #fff; border: none; padding: 0 15px; height: 36px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
         .search-main-btn { background: #4b0082; }
         
-        /* EEW待機バッジ（凡例との干渉を避けるため少し上に移動） */
         #dmdata-status { display: none; position: absolute; bottom: 80px; right: 15px; z-index: 1000; background: rgba(20, 20, 20, 0.85); color: #fff; padding: 6px 15px; border-radius: 20px; font-size: 12px; font-weight: 700; box-shadow: 0 2px 10px rgba(0,0,0,0.3); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.2); }
 
-        /* =========================================
-           【新設】凡例パネル
-           ========================================= */
-        #legend-panel {
-            position: absolute; bottom: 15px; right: 15px; z-index: 1000;
-            background: var(--panel-bg); padding: 8px 12px; border-radius: 8px;
-            border: 1px solid var(--border-color); box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            display: flex; gap: 8px; font-family: 'BIZ UDPGothic', sans-serif;
-        }
+        #legend-panel { position: absolute; bottom: 15px; right: 15px; z-index: 1000; background: var(--panel-bg); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flex; gap: 8px; font-family: 'BIZ UDPGothic', sans-serif; }
         .legend-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-weight: 700; color: var(--text-main); font-size: 11px; }
         .legend-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1.5px solid #000; font-size: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 
-        /* マップアイコン共通カラー */
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
         .epicenter-cross { color: #ff0000; font-size: 70px; font-weight: 700; text-shadow: 0 0 10px #fff; display: flex !important; align-items: center; justify-content: center; animation: blink 1s infinite; }
         .intensity-base { display: flex !important; align-items: center; justify-content: center; border: 1.5px solid #000 !important; font-weight: 700 !important; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
@@ -72,7 +62,6 @@
         .scale-30 { background: #78e6dc; color: #000; } .scale-20 { background: #1e82e6; color: #fff; } .scale-10 { background: #3c5a82; color: #fff; }
         .leaflet-tooltip { font-family: 'BIZ UDPGothic', sans-serif; font-size: 12px; padding: 6px 10px; border-radius: 4px; }
 
-        /* 検索モーダル & バッジ */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
         .modal-container { background: var(--panel-bg); color: var(--text-main); width: 90%; max-width: 800px; height: 85%; max-height: 800px; border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.5); overflow: hidden; border: 1px solid var(--border-color); }
         .modal-header { background: #4b0082; color: #fff; padding: 15px 20px; font-size: 1.2em; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
@@ -91,8 +80,6 @@
         .result-item:hover { background: rgba(75, 0, 130, 0.1); }
         .result-main { font-weight: 700; font-size: 1.05em; margin-bottom: 4px; }
         .result-sub { font-size: 0.85em; opacity: 0.8; }
-        
-        /* 【修正】検索結果のバッジの文字色が白で固定されないよう修正 */
         .result-scale-badge { padding: 4px 12px; border-radius: 4px; font-weight: 700; font-size: 1.1em; border: 1.5px solid #000; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
     </style>
 </head>
@@ -206,20 +193,15 @@
                     <button class="search-btn-execute" onclick="executeSearch()">この条件で検索・絞り込み</button>
                 </div>
             </div>
-            <div id="search-results-list" class="search-results-area">
-                </div>
+            <div id="search-results-list" class="search-results-area"></div>
         </div>
     </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    // 正式名称マップ (パネルやツールチップで使用)
     const scaleMap = { "10": "1", "20": "2", "30": "3", "40": "4", "45": "5弱", "50": "5強", "55": "6弱", "60": "6強", "70": "7" };
-    
-    // 【新設】プロット用略称マップ (地図上のアイコンやバッジで使用)
     const plotScaleMap = { "10": "1", "20": "2", "30": "3", "40": "4", "45": "5-", "50": "5+", "55": "6-", "60": "6+", "70": "7" };
-    
     const issueTypeMap = { "ScalePrompt": "震度速報", "Destination": "震源に関する情報", "ScaleAndDestination": "震源・震度情報", "DetailScale": "各地の震度情報", "Foreign": "遠地地震情報" };
 
     const map = L.map('map', { zoomControl: false }).setView([36.2, 138.2], 5);
@@ -229,6 +211,9 @@
     
     let stationMaster = [], currentData = null, isHistoryMode = false;
     let tickerWindow = null, localWs = null, pollingInterval = null;
+    
+    // 【重要】間引きはしないが、座標計算を大幅に軽くするグローバルキャッシュは残す
+    let stationCache = {}; 
 
     function getCityName(addr) {
         const exceptions = ['四日市市', '廿日市市', '市川市', '市原市', '野々市市', '大町市', '八日市場市'];
@@ -292,7 +277,6 @@
         fetchLatestP2P();
     }
 
-    /* 検索・フィルタリング処理 */
     let searchCache = []; 
 
     function openSearchModal() {
@@ -352,10 +336,7 @@
         data.forEach(eq => {
             const e = eq.earthquake || {}, h = e.hypocenter || {}, issue = eq.issue || {};
             const typeStr = issueTypeMap[issue.type] || "地震情報";
-            
-            // 【修正】検索結果の文字を「5+」などの略称にし、マップと完全に連動させる
             const plotScaleStr = (e.maxScale !== undefined && e.maxScale !== -1) ? (plotScaleMap[e.maxScale] || '?') : '-';
-            
             const magStr = (h.magnitude !== undefined && h.magnitude !== -1) ? `M${h.magnitude}` : '調査中';
             const hypName = h.name ? h.name : '震源調査中';
             const tsMsg = !(e.domesticTsunami === "None" || e.domesticTsunami === "NonEffective" || e.domesticTsunami === "Unknown" || e.domesticTsunami === undefined) ? "<span style='color:red'>津波情報あり</span>" : "津波の心配なし";
@@ -412,17 +393,22 @@
             pts.forEach(pt => {
                 const s = String(pt.scale);
                 const pref = pt.pref || (pt.addr.match(/^(.+?[都道府県])/)?.[1]) || "不明";
+                
                 if (!grouped[s]) grouped[s] = {};
                 if (!grouped[s][pref]) grouped[s][pref] = new Set();
                 grouped[s][pref].add(getCityName(pt.addr));
 
-                let st = stationMaster.find(m => pt.addr.includes(m.name));
-                if (!st && isQuickReport) st = stationMaster.find(m => (m.region && m.region === pt.addr) || (m.pref && pt.addr.startsWith(m.pref)));
+                // ▼ キャッシュを使った高速・全件プロット処理 (間引きなし)
+                let st = stationCache[pt.addr];
+                if (st === undefined) {
+                    st = stationMaster.find(m => pt.addr.includes(m.name));
+                    if (!st && isQuickReport) st = stationMaster.find(m => (m.region && m.region === pt.addr) || (m.pref && pt.addr.startsWith(m.pref)));
+                    stationCache[pt.addr] = st || null; // 座標を記憶
+                }
 
                 if (st) {
                     const pos = [parseFloat(st.lat || st.latitude), parseFloat(st.lng || st.lon || st.longitude)];
                     bounds.push(pos);
-                    // 【修正】マップ上のアイコンの文字を plotScaleMap (5+, 6- など) に変更！
                     L.marker(pos, { icon: L.divIcon({ className: `intensity-base ${iconShapeClass} scale-${pt.scale}`, html: plotScaleMap[s], iconSize: [26, 26] }), zIndexOffset: pt.scale * 10 }).addTo(markerGroup).bindTooltip(`<b>【震度${scaleMap[s]}】</b><br>${pt.addr}`, { sticky: true });
                 }
             });
