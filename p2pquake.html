@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
     <style>
         /* =========================================
-           UI BASELINE
+           UI BASELINE (一切変更なし)
            ========================================= */
         :root { --panel-bg: rgba(255, 255, 255, 0.98); --text-main: #000; --border-color: #000; --max-scale-color: #000; }
         .dark-theme { --panel-bg: rgba(20, 20, 20, 0.95); --text-main: #fff; --border-color: #555; --max-scale-color: #ffeb3b; }
@@ -91,7 +91,6 @@
 
 <div id="settings-menu" class="settings-menu">
     <label style="cursor:pointer; font-weight:700;"><input type="checkbox" id="dark-toggle" onchange="applySettings()"> ダークモード</label>
-    
     <div id="future-dmdata-features" style="display:none;">
         <span class="settings-label">EEW(緊急地震速報) 接続設定</span>
         <select id="data-source" class="settings-input" onchange="applySettings()">
@@ -151,47 +150,27 @@
         </div>
         <div class="modal-body">
             <div class="search-form">
-                <div>
-                    <label>発生日時 (から)</label>
-                    <input type="date" id="s-since">
-                </div>
-                <div>
-                    <label>発生日時 (まで)</label>
-                    <input type="date" id="s-until">
-                </div>
+                <div><label>発生日時 (から)</label><input type="date" id="s-since"></div>
+                <div><label>発生日時 (まで)</label><input type="date" id="s-until"></div>
                 <div>
                     <label>最大震度 (下限)</label>
                     <select id="s-min-scale">
-                        <option value="">指定なし</option>
-                        <option value="10">震度1</option>
-                        <option value="20">震度2</option>
-                        <option value="30">震度3</option>
-                        <option value="40">震度4</option>
-                        <option value="45">震度5弱</option>
-                        <option value="50">震度5強</option>
-                        <option value="55">震度6弱</option>
-                        <option value="60">震度6強</option>
+                        <option value="">指定なし</option><option value="10">震度1</option><option value="20">震度2</option>
+                        <option value="30">震度3</option><option value="40">震度4</option><option value="45">震度5弱</option>
+                        <option value="50">震度5強</option><option value="55">震度6弱</option><option value="60">震度6強</option>
                         <option value="70">震度7</option>
                     </select>
                 </div>
-                <div>
-                    <label>マグニチュード (下限)</label>
-                    <input type="number" id="s-min-mag" placeholder="例: 5.0" step="0.1" min="0">
-                </div>
+                <div><label>マグニチュード (下限)</label><input type="number" id="s-min-mag" placeholder="例: 5.0" step="0.1" min="0"></div>
                 <div>
                     <label>情報の種類</label>
                     <select id="s-issue">
-                        <option value="">すべて</option>
-                        <option value="ScalePrompt">震度速報</option>
-                        <option value="Destination">震源に関する情報</option>
-                        <option value="ScaleAndDestination">震源・震度情報</option>
-                        <option value="DetailScale">各地の震度情報</option>
+                        <option value="">すべて</option><option value="ScalePrompt">震度速報</option><option value="Destination">震源に関する情報</option>
+                        <option value="ScaleAndDestination">震源・震度情報</option><option value="DetailScale">各地の震度情報</option>
                         <option value="Foreign">遠地地震情報</option>
                     </select>
                 </div>
-                <div class="search-btn-wrap">
-                    <button class="search-btn-execute" onclick="executeSearch()">この条件で検索・絞り込み</button>
-                </div>
+                <div class="search-btn-wrap"><button class="search-btn-execute" onclick="executeSearch()">この条件で検索・絞り込み</button></div>
             </div>
             <div id="search-results-list" class="search-results-area"></div>
         </div>
@@ -211,9 +190,10 @@
     
     let stationMaster = [], currentData = null, isHistoryMode = false;
     let tickerWindow = null, localWs = null, pollingInterval = null;
-    
-    // 【重要】間引きはしないが、座標計算を大幅に軽くするグローバルキャッシュは残す
     let stationCache = {}; 
+    
+    // 【新設】非同期処理のキャンセルトークン（連打防止）
+    let currentRenderTask = 0;
 
     function getCityName(addr) {
         const exceptions = ['四日市市', '廿日市市', '市川市', '市原市', '野々市市', '大町市', '八日市場市'];
@@ -244,29 +224,13 @@
         applySettings();
     }
 
-    function connectToLocalNode() {
-        if (localWs) return;
-        localWs = new WebSocket(`ws://${window.location.host}`);
-        const statusEl = document.getElementById('dmdata-status');
-        localWs.onopen = () => console.log("Node.js サーバーと接続完了（EEWスタンバイ中）");
-        localWs.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data.type === "status") {
-                if (data.status === "connected") { statusEl.innerHTML = 'EEW機能: 🟢 接続済 (待機中)'; statusEl.style.color = '#4caf50'; }
-                else { statusEl.innerHTML = 'EEW機能: 🔴 切断'; statusEl.style.color = '#f44336'; }
-            }
-            if (data.type === "dmdata_eew_standby") console.log("⚡ EEWデータ受信:", data.payload);
-        };
-        localWs.onclose = () => { localWs = null; if (document.getElementById('data-source').value === 'dmdata') setTimeout(connectToLocalNode, 3000); };
-    }
-
     async function fetchLatestP2P() {
         if (isHistoryMode) return; 
         try {
             const res = await fetch("https://api.p2pquake.net/v2/jma/quake?limit=1");
             const data = await res.json();
             if (data[0] && data[0].earthquake && data[0].issue && (!currentData || data[0].id !== currentData.id)) {
-                updateDisplay(data[0], true);
+                updateDisplayAsync(data[0], true);
             }
         } catch (e) {}
     }
@@ -278,17 +242,8 @@
     }
 
     let searchCache = []; 
-
-    function openSearchModal() {
-        document.getElementById('search-modal').style.display = 'flex';
-        if(document.getElementById('search-results-list').innerHTML.trim() === '') {
-            executeSearch();
-        }
-    }
-
-    function closeSearchModal() {
-        document.getElementById('search-modal').style.display = 'none';
-    }
+    function openSearchModal() { document.getElementById('search-modal').style.display = 'flex'; if(document.getElementById('search-results-list').innerHTML.trim() === '') executeSearch(); }
+    function closeSearchModal() { document.getElementById('search-modal').style.display = 'none'; }
 
     async function executeSearch() {
         const resultsArea = document.getElementById('search-results-list');
@@ -310,27 +265,17 @@
             const res = await fetch(url);
             let data = await res.json();
             data = data.filter(item => item.earthquake && item.issue);
-
-            if (minMag > 0) {
-                data = data.filter(item => {
-                    const mag = item.earthquake.hypocenter?.magnitude;
-                    return (mag !== undefined && mag !== -1 && mag >= minMag);
-                });
-            }
+            if (minMag > 0) data = data.filter(item => { const mag = item.earthquake.hypocenter?.magnitude; return (mag !== undefined && mag !== -1 && mag >= minMag); });
             renderSearchResults(data);
         } catch (e) {
-            resultsArea.innerHTML = '<div style="padding:30px; text-align:center; color:red; font-weight:700;">取得エラーが発生しました。時間を空けてお試しください。</div>';
+            resultsArea.innerHTML = '<div style="padding:30px; text-align:center; color:red; font-weight:700;">取得エラーが発生しました。</div>';
         }
     }
 
     function renderSearchResults(data) {
         searchCache = data;
         const resultsArea = document.getElementById('search-results-list');
-        
-        if (data.length === 0) {
-            resultsArea.innerHTML = '<div style="padding:30px; text-align:center; font-weight:700;">該当する地震データが見つかりませんでした。</div>';
-            return;
-        }
+        if (data.length === 0) { resultsArea.innerHTML = '<div style="padding:30px; text-align:center; font-weight:700;">該当する地震データが見つかりませんでした。</div>'; return; }
         
         let html = '';
         data.forEach(eq => {
@@ -340,38 +285,33 @@
             const magStr = (h.magnitude !== undefined && h.magnitude !== -1) ? `M${h.magnitude}` : '調査中';
             const hypName = h.name ? h.name : '震源調査中';
             const tsMsg = !(e.domesticTsunami === "None" || e.domesticTsunami === "NonEffective" || e.domesticTsunami === "Unknown" || e.domesticTsunami === undefined) ? "<span style='color:red'>津波情報あり</span>" : "津波の心配なし";
-            
             let badgeClass = `scale-${e.maxScale}`;
             if (e.maxScale === undefined || e.maxScale === -1) badgeClass = 'scale-10';
 
-            html += `
-                <div class="result-item" onclick="selectHistoryItem('${eq.id}')">
-                    <div>
-                        <div class="result-main">【${typeStr}】${hypName} (${magStr})</div>
-                        <div class="result-sub">発生：${e.time || '不明'} ｜ ${tsMsg}</div>
-                    </div>
-                    <div class="result-scale-badge ${badgeClass}">震度 ${plotScaleStr}</div>
-                </div>
-            `;
+            html += `<div class="result-item" onclick="selectHistoryItem('${eq.id}')"><div><div class="result-main">【${typeStr}】${hypName} (${magStr})</div><div class="result-sub">発生：${e.time || '不明'} ｜ ${tsMsg}</div></div><div class="result-scale-badge ${badgeClass}">震度 ${plotScaleStr}</div></div>`;
         });
         resultsArea.innerHTML = html;
     }
 
     function selectHistoryItem(id) {
         const d = searchCache.find(item => item.id === id);
-        if (d) {
-            isHistoryMode = true;
-            updateDisplay(d, true);
-            closeSearchModal();
-        }
+        if (d) { isHistoryMode = true; updateDisplayAsync(d, true); closeSearchModal(); }
     }
 
-    function updateDisplay(data, shouldFit) {
+    /* =========================================
+       【超重要】非同期・分割プロット処理（スマホフリーズ対策）
+       ========================================= */
+    async function updateDisplayAsync(data, shouldFit) {
+        // キャンセルトークンを更新（前の描画処理をストップさせる）
+        currentRenderTask++;
+        const renderId = currentRenderTask;
+        
         currentData = data;
         const e = data.earthquake || {}, h = e.hypocenter || {}, pts = data.points || [], issue = data.issue || {}, bounds = [];
         const isQuickReport = issue.type === "ScalePrompt";
         const iconShapeClass = isQuickReport ? "intensity-square" : "intensity-circle";
 
+        // UIのテキスト部分は一瞬で終わるので同期処理
         document.getElementById('info-title-bar').innerText = issueTypeMap[issue.type] || "地震情報";
         document.getElementById('eq-time-full').innerText = (e.time || '----/--/-- --:--') + ' 頃発生';
         document.getElementById('max-scale').innerText = (e.maxScale !== undefined && e.maxScale !== -1) ? (scaleMap[e.maxScale] || '?') : '調査中';
@@ -386,53 +326,71 @@
 
         markerGroup.clearLayers();
         const content = document.getElementById('points-content');
-        content.innerHTML = '';
         
-        if (pts.length > 0) {
+        if (pts.length === 0) {
+            content.innerHTML = '<div style="padding: 10px; color: #666;">詳細な観測データは現在入電待ちです...</div>';
+        } else {
+            // プロット中はロード中の文字を出す
+            content.innerHTML = `<div style="padding: 15px; font-weight:700; color: #4b0082;">📡 ${pts.length}件の観測データを展開中...</div>`;
+            
             const grouped = {};
             pts.forEach(pt => {
                 const s = String(pt.scale);
                 const pref = pt.pref || (pt.addr.match(/^(.+?[都道府県])/)?.[1]) || "不明";
-                
                 if (!grouped[s]) grouped[s] = {};
                 if (!grouped[s][pref]) grouped[s][pref] = new Set();
                 grouped[s][pref].add(getCityName(pt.addr));
-
-                // ▼ キャッシュを使った高速・全件プロット処理 (間引きなし)
-                let st = stationCache[pt.addr];
-                if (st === undefined) {
-                    st = stationMaster.find(m => pt.addr.includes(m.name));
-                    if (!st && isQuickReport) st = stationMaster.find(m => (m.region && m.region === pt.addr) || (m.pref && pt.addr.startsWith(m.pref)));
-                    stationCache[pt.addr] = st || null; // 座標を記憶
-                }
-
-                if (st) {
-                    const pos = [parseFloat(st.lat || st.latitude), parseFloat(st.lng || st.lon || st.longitude)];
-                    bounds.push(pos);
-                    L.marker(pos, { icon: L.divIcon({ className: `intensity-base ${iconShapeClass} scale-${pt.scale}`, html: plotScaleMap[s], iconSize: [26, 26] }), zIndexOffset: pt.scale * 10 }).addTo(markerGroup).bindTooltip(`<b>【震度${scaleMap[s]}】</b><br>${pt.addr}`, { sticky: true });
-                }
             });
 
+            // リストのHTML生成
+            let listHtml = '';
             [70, 60, 55, 50, 45, 40, 30, 20, 10].forEach(s => {
                 if (grouped[s]) {
-                    let html = `<div><div class="list-group-header scale-${s}">震度 ${scaleMap[s]}</div></div>`;
-                    for (const pref in grouped[s]) html += `<div class="pref-block"><div class="pref-name">【${pref}】</div><div class="list-points">${Array.from(grouped[s][pref]).join('、')}</div></div>`;
-                    content.innerHTML += html;
+                    listHtml += `<div><div class="list-group-header scale-${s}">震度 ${scaleMap[s]}</div></div>`;
+                    for (const pref in grouped[s]) listHtml += `<div class="pref-block"><div class="pref-name">【${pref}】</div><div class="list-points">${Array.from(grouped[s][pref]).join('、')}</div></div>`;
                 }
             });
-        } else {
-            content.innerHTML = '<div style="padding: 10px; color: #666;">詳細な観測データは現在入電待ちです...</div>';
+            content.innerHTML = listHtml;
+
+            // ▼ 非同期プロット処理 (チャンク分割)
+            const chunkSize = 50; // 50件ずつ描画してブラウザを休憩させる
+            for (let i = 0; i < pts.length; i += chunkSize) {
+                // もし新しい地震がクリックされていたら、このループを中止する
+                if (currentRenderTask !== renderId) return;
+
+                const chunk = pts.slice(i, i + chunkSize);
+                chunk.forEach(pt => {
+                    const s = String(pt.scale);
+                    let st = stationCache[pt.addr];
+                    if (st === undefined) {
+                        st = stationMaster.find(m => pt.addr.includes(m.name));
+                        if (!st && isQuickReport) st = stationMaster.find(m => (m.region && m.region === pt.addr) || (m.pref && pt.addr.startsWith(m.pref)));
+                        stationCache[pt.addr] = st || null;
+                    }
+
+                    if (st) {
+                        const pos = [parseFloat(st.lat || st.latitude), parseFloat(st.lng || st.lon || st.longitude)];
+                        bounds.push(pos);
+                        L.marker(pos, { icon: L.divIcon({ className: `intensity-base ${iconShapeClass} scale-${pt.scale}`, html: plotScaleMap[s], iconSize: [26, 26] }), zIndexOffset: pt.scale * 10 }).addTo(markerGroup).bindTooltip(`<b>【震度${scaleMap[s]}】</b><br>${pt.addr}`, { sticky: true });
+                    }
+                });
+
+                // ブラウザに描画する隙間を与える (非同期の息継ぎ)
+                await new Promise(resolve => setTimeout(resolve, 0));
+            }
         }
 
-        const isValidEpicenter = h.latitude !== undefined && h.latitude !== -1 && h.latitude !== 200 && h.name;
-        if (isValidEpicenter) {
-            const hPos = [h.latitude, h.longitude];
-            bounds.push(hPos);
-            L.marker(hPos, { icon: L.divIcon({ className: 'epicenter-cross', html: '×', iconSize: [80, 80] }), zIndexOffset: 1000 }).addTo(markerGroup);
+        // 全件プロット完了後、震源地を刺してズームを合わせる
+        if (currentRenderTask === renderId) {
+            const isValidEpicenter = h.latitude !== undefined && h.latitude !== -1 && h.latitude !== 200 && h.name;
+            if (isValidEpicenter) {
+                const hPos = [h.latitude, h.longitude];
+                bounds.push(hPos);
+                L.marker(hPos, { icon: L.divIcon({ className: 'epicenter-cross', html: '×', iconSize: [80, 80] }), zIndexOffset: 1000 }).addTo(markerGroup);
+            }
+            if (shouldFit && bounds.length > 0) map.fitBounds(bounds, { padding: [80, 80], maxZoom: 8 });
+            updateTickerIfOpen(data);
         }
-
-        if (shouldFit && bounds.length > 0) map.fitBounds(bounds, { padding: [80, 80], maxZoom: 8 });
-        updateTickerIfOpen(data);
     }
 
     function getTickerPayload(data) {
