@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
     <style>
         /* =========================================
-           UI BASELINE (PC版のメインUIは一切変更なし)
+           UI BASELINE (メインUIは一切変更なし)
            ========================================= */
         :root { --panel-bg: rgba(255, 255, 255, 0.98); --text-main: #000; --border-color: #000; --max-scale-color: #000; }
         .dark-theme { --panel-bg: rgba(20, 20, 20, 0.95); --text-main: #fff; --border-color: #555; --max-scale-color: #ffeb3b; }
@@ -48,9 +48,22 @@
         
         #dmdata-status { display: none; position: absolute; bottom: 80px; right: 15px; z-index: 1000; background: rgba(20, 20, 20, 0.85); color: #fff; padding: 6px 15px; border-radius: 20px; font-size: 12px; font-weight: 700; box-shadow: 0 2px 10px rgba(0,0,0,0.3); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.2); }
 
-        #legend-panel { position: absolute; bottom: 15px; right: 15px; z-index: 1000; background: var(--panel-bg); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flex; gap: 8px; font-family: 'BIZ UDPGothic', sans-serif; }
-        .legend-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-weight: 700; color: var(--text-main); font-size: 11px; }
-        .legend-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1.5px solid #000; font-size: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        /* =========================================
+           【修正】凡例パネル (PC：縦並び仕様)
+           ========================================= */
+        #legend-panel { 
+            position: absolute; bottom: 15px; right: 15px; z-index: 1000; 
+            background: var(--panel-bg); padding: 12px 15px; border-radius: 8px; 
+            border: 1px solid var(--border-color); box-shadow: 0 4px 10px rgba(0,0,0,0.2); 
+            display: flex; flex-direction: column; gap: 8px; /* PCは縦並び */
+            font-family: 'BIZ UDPGothic', sans-serif; 
+        }
+        .legend-item { 
+            display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; 
+            font-weight: 700; color: var(--text-main); font-size: 12px; 
+        }
+        .legend-label { text-align: left; }
+        .legend-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1.5px solid #000; font-size: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); flex-shrink: 0; }
 
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
         .epicenter-cross { color: #ff0000; font-size: 70px; font-weight: 700; text-shadow: 0 0 10px #fff; display: flex !important; align-items: center; justify-content: center; animation: blink 1s infinite; }
@@ -83,56 +96,39 @@
         .result-scale-badge { padding: 4px 12px; border-radius: 4px; font-weight: 700; font-size: 1.1em; border: 1.5px solid #000; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
 
         /* =========================================
-           【新設】レスポンシブ対応 (モバイル・タブレット)
+           レスポンシブ対応 (モバイル・タブレット)
            ========================================= */
         @media screen and (max-width: 850px) {
-            /* 1. 画面全体のスクロールを許可し、背景色を少し落としてパネルを目立たせる */
             html, body { overflow-y: auto !important; height: auto !important; min-height: 100vh; }
-            body { 
-                display: flex; flex-direction: column; align-items: center; 
-                padding: 15px; gap: 15px; box-sizing: border-box;
-            }
+            body { display: flex; flex-direction: column; align-items: center; padding: 15px; gap: 15px; box-sizing: border-box; }
             body:not(.dark-theme) { background: #e9ecef; }
             .dark-theme body { background: #0a0a0a; }
 
-            /* 2. 地図の配置：一番上・左右余白あり */
-            #map { 
-                position: relative !important; width: 100% !important; max-width: 600px; 
-                height: 35vh !important; min-height: 250px !important; 
-                border-radius: 12px; border: 1px solid var(--border-color); 
-                order: 1; z-index: 1; flex-shrink: 0; box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
-            }
+            #map { position: relative !important; width: 100% !important; max-width: 600px; height: 35vh !important; min-height: 250px !important; border-radius: 12px; border: 1px solid var(--border-color); order: 1; z-index: 1; flex-shrink: 0; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
             
-            /* 3. 凡例：横スクロール対応 */
+            /* 【修正】凡例パネル (スマホ：横並び＆横スクロール) */
             #legend-panel { 
                 position: relative !important; bottom: auto !important; right: auto !important; 
                 order: 2; width: 100%; max-width: 600px; overflow-x: auto; 
+                flex-direction: row; /* 横並びに変更 */
                 justify-content: flex-start; padding: 12px 15px; box-sizing: border-box; flex-shrink: 0; 
             }
             #legend-panel::-webkit-scrollbar { height: 6px; }
             #legend-panel::-webkit-scrollbar-thumb { background: #aaa; border-radius: 3px; }
-            .legend-item { flex-shrink: 0; min-width: 40px; }
-
-            /* 4. 検索・最新ボタン */
-            .history-panel { 
-                position: relative !important; bottom: auto !important; left: auto !important; 
-                order: 3; width: 100%; max-width: 600px; display: flex; gap: 10px; 
-                box-sizing: border-box; flex-shrink: 0; 
+            
+            .legend-item { 
+                flex-direction: column; /* スマホでは文字が上、アイコンが下のスマートな配置 */
+                gap: 6px; flex-shrink: 0; min-width: 45px; 
             }
+            .legend-label { text-align: center; font-size: 10px; white-space: nowrap; }
+
+            .history-panel { position: relative !important; bottom: auto !important; left: auto !important; order: 3; width: 100%; max-width: 600px; display: flex; gap: 10px; box-sizing: border-box; flex-shrink: 0; }
             .history-panel button { flex: 1; margin: 0; height: 48px; font-size: 14px; }
 
-            /* 5. 情報パネル群（概要→詳細の順で下に伸びる） */
-            .side-container { 
-                position: relative !important; top: auto !important; left: auto !important; 
-                order: 4; width: 100% !important; max-width: 600px; max-height: none !important; 
-                display: flex; flex-direction: column; gap: 15px; box-sizing: border-box; flex-shrink: 0; 
-            }
-            
-            /* 各地の詳細リストは内部スクロールをやめて、画面全体のスクロールに任せる */
+            .side-container { position: relative !important; top: auto !important; left: auto !important; order: 4; width: 100% !important; max-width: 600px; max-height: none !important; display: flex; flex-direction: column; gap: 15px; box-sizing: border-box; flex-shrink: 0; }
             .points-panel { overflow: visible !important; }
             .points-scroll-area { overflow-y: visible !important; max-height: none !important; padding-bottom: 20px; }
 
-            /* 6. 設定・フローティングボタン（画面スクロールについてくるように固定） */
             .settings-btn { position: fixed !important; top: 15px !important; z-index: 2000 !important; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
             .settings-btn.ticker-btn { right: 65px !important; }
             .settings-btn:not(.ticker-btn) { right: 15px !important; }
@@ -149,7 +145,6 @@
 
 <div id="settings-menu" class="settings-menu">
     <label style="cursor:pointer; font-weight:700;"><input type="checkbox" id="dark-toggle" onchange="applySettings()"> ダークモード</label>
-    
     <div id="future-dmdata-features" style="display:none;">
         <span class="settings-label">EEW(緊急地震速報) 接続設定</span>
         <select id="data-source" class="settings-input" onchange="applySettings()">
@@ -190,15 +185,15 @@
 </div>
 
 <div id="legend-panel">
-    <div class="legend-item"><div class="legend-icon scale-10">1</div></div>
-    <div class="legend-item"><div class="legend-icon scale-20">2</div></div>
-    <div class="legend-item"><div class="legend-icon scale-30">3</div></div>
-    <div class="legend-item"><div class="legend-icon scale-40">4</div></div>
-    <div class="legend-item"><div class="legend-icon scale-45">5-</div></div>
-    <div class="legend-item"><div class="legend-icon scale-50">5+</div></div>
-    <div class="legend-item"><div class="legend-icon scale-55">6-</div></div>
-    <div class="legend-item"><div class="legend-icon scale-60">6+</div></div>
-    <div class="legend-item"><div class="legend-icon scale-70">7</div></div>
+    <div class="legend-item"><span class="legend-label">震度7</span><div class="legend-icon scale-70">7</div></div>
+    <div class="legend-item"><span class="legend-label">震度6強</span><div class="legend-icon scale-60">6+</div></div>
+    <div class="legend-item"><span class="legend-label">震度6弱</span><div class="legend-icon scale-55">6-</div></div>
+    <div class="legend-item"><span class="legend-label">震度5強</span><div class="legend-icon scale-50">5+</div></div>
+    <div class="legend-item"><span class="legend-label">震度5弱</span><div class="legend-icon scale-45">5-</div></div>
+    <div class="legend-item"><span class="legend-label">震度4</span><div class="legend-icon scale-40">4</div></div>
+    <div class="legend-item"><span class="legend-label">震度3</span><div class="legend-icon scale-30">3</div></div>
+    <div class="legend-item"><span class="legend-label">震度2</span><div class="legend-icon scale-20">2</div></div>
+    <div class="legend-item"><span class="legend-label">震度1</span><div class="legend-icon scale-10">1</div></div>
 </div>
 
 <div id="search-modal" class="modal-overlay">
@@ -539,10 +534,7 @@
         }
     }
 
-    // ★ ウィンドウのサイズが変わった時（スマホの横持ちなど）に地図の枠の崩れを自動修復する機能
-    window.addEventListener('resize', () => {
-        if (map) map.invalidateSize();
-    });
+    window.addEventListener('resize', () => { if (map) map.invalidateSize(); });
 
     async function init() {
         checkUrlParams();
