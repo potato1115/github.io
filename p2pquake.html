@@ -48,20 +48,8 @@
         
         #dmdata-status { display: none; position: absolute; bottom: 80px; right: 15px; z-index: 1000; background: rgba(20, 20, 20, 0.85); color: #fff; padding: 6px 15px; border-radius: 20px; font-size: 12px; font-weight: 700; box-shadow: 0 2px 10px rgba(0,0,0,0.3); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.2); }
 
-        /* =========================================
-           【修正】凡例パネル (PC：縦並び仕様)
-           ========================================= */
-        #legend-panel { 
-            position: absolute; bottom: 15px; right: 15px; z-index: 1000; 
-            background: var(--panel-bg); padding: 12px 15px; border-radius: 8px; 
-            border: 1px solid var(--border-color); box-shadow: 0 4px 10px rgba(0,0,0,0.2); 
-            display: flex; flex-direction: column; gap: 8px; /* PCは縦並び */
-            font-family: 'BIZ UDPGothic', sans-serif; 
-        }
-        .legend-item { 
-            display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; 
-            font-weight: 700; color: var(--text-main); font-size: 12px; 
-        }
+        #legend-panel { position: absolute; bottom: 15px; right: 15px; z-index: 1000; background: var(--panel-bg); padding: 12px 15px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 8px; font-family: 'BIZ UDPGothic', sans-serif; }
+        .legend-item { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; font-weight: 700; color: var(--text-main); font-size: 12px; }
         .legend-label { text-align: left; }
         .legend-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1.5px solid #000; font-size: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); flex-shrink: 0; }
 
@@ -106,20 +94,10 @@
 
             #map { position: relative !important; width: 100% !important; max-width: 600px; height: 35vh !important; min-height: 250px !important; border-radius: 12px; border: 1px solid var(--border-color); order: 1; z-index: 1; flex-shrink: 0; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
             
-            /* 【修正】凡例パネル (スマホ：横並び＆横スクロール) */
-            #legend-panel { 
-                position: relative !important; bottom: auto !important; right: auto !important; 
-                order: 2; width: 100%; max-width: 600px; overflow-x: auto; 
-                flex-direction: row; /* 横並びに変更 */
-                justify-content: flex-start; padding: 12px 15px; box-sizing: border-box; flex-shrink: 0; 
-            }
+            #legend-panel { position: relative !important; bottom: auto !important; right: auto !important; order: 2; width: 100%; max-width: 600px; overflow-x: auto; flex-direction: row; justify-content: flex-start; padding: 12px 15px; box-sizing: border-box; flex-shrink: 0; }
             #legend-panel::-webkit-scrollbar { height: 6px; }
             #legend-panel::-webkit-scrollbar-thumb { background: #aaa; border-radius: 3px; }
-            
-            .legend-item { 
-                flex-direction: column; /* スマホでは文字が上、アイコンが下のスマートな配置 */
-                gap: 6px; flex-shrink: 0; min-width: 45px; 
-            }
+            .legend-item { flex-direction: column; gap: 6px; flex-shrink: 0; min-width: 45px; }
             .legend-label { text-align: center; font-size: 10px; white-space: nowrap; }
 
             .history-panel { position: relative !important; bottom: auto !important; left: auto !important; order: 3; width: 100%; max-width: 600px; display: flex; gap: 10px; box-sizing: border-box; flex-shrink: 0; }
@@ -292,10 +270,11 @@
         localWs.onclose = () => { localWs = null; if (document.getElementById('data-source').value === 'dmdata') setTimeout(connectToLocalNode, 3000); };
     }
 
+    // ★ 【最重要】最新情報の待機は最速の /v2/history (コード551) を使用！
     async function fetchLatestP2P() {
         if (isHistoryMode) return; 
         try {
-            const res = await fetch("https://api.p2pquake.net/v2/jma/quake?limit=1");
+            const res = await fetch("https://api.p2pquake.net/v2/history?codes=551&limit=1");
             const data = await res.json();
             if (data[0] && data[0].earthquake && data[0].issue && (!currentData || data[0].id !== currentData.id)) {
                 updateDisplayAsync(data[0], true);
@@ -313,6 +292,7 @@
     function openSearchModal() { document.getElementById('search-modal').style.display = 'flex'; if(document.getElementById('search-results-list').innerHTML.trim() === '') executeSearch(); }
     function closeSearchModal() { document.getElementById('search-modal').style.display = 'none'; }
 
+    // ★ 過去データの検索は、絞り込みに特化した /v2/jma/quake を使用！
     async function executeSearch() {
         const resultsArea = document.getElementById('search-results-list');
         resultsArea.innerHTML = '<div style="padding:30px; text-align:center; font-weight:700;">サーバーから取得中...</div>';
