@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地震情報モニター</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* =========================================
+           UI BASELINE
+           ========================================= */
+        :root { --panel-bg: rgba(255, 255, 255, 0.98); --text-main: #000; --border-color: #000; --max-scale-color: #000; }
+        .dark-theme { --panel-bg: rgba(20, 20, 20, 0.95); --text-main: #fff; --border-color: #555; --max-scale-color: #ffeb3b; }
+        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: 'BIZ UDPGothic', sans-serif; }
+        #map { width: 100%; height: 100vh; z-index: 1; }
+        .side-container { position: absolute; top: 15px; left: 15px; z-index: 1000; width: 380px; max-height: calc(100vh - 100px); display: flex; flex-direction: column; gap: 10px; }
+        .info-panel { flex-shrink: 0; }
+        .points-panel { flex-grow: 1; display: flex; flex-direction: column; min-height: 0; }
+        .info-panel, .points-panel { background: var(--panel-bg); color: var(--text-main); border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); overflow: hidden; border: 1px solid var(--border-color); }
+        .info-title-bar { background: #4b0082; color: #fff; padding: 10px; font-size: 1.5em; font-weight: 700; text-align: center; }
+        .info-body { padding: 15px 22px; }
+        .eq-time-main { font-size: 1.05em; display: block; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; margin-bottom: 10px; font-weight: 700; }
+        .max-scale-row { font-size: 1.6em; font-weight: 700; margin: 8px 0; color: var(--max-scale-color); }
+        .info-row { margin: 8px 0; font-size: 1.05em; line-height: 1.35; }
+        .tsunami-status { margin-top: 12px; font-weight: 700; font-size: 1.05em; }
+        .tsunami-none { color: var(--text-main); }
+        .tsunami-active { color: #e60000; }
+        .source-credit { text-align: right; font-size: 0.75em; margin-top: 15px; opacity: 0.7; border-top: 1px dashed var(--border-color); padding-top: 8px; font-weight: 400; }
+        .points-scroll-area { padding: 0 15px 15px; overflow-y: auto; flex-grow: 1; }
+        .list-group-header { margin-top: 10px; padding: 2px 6px; font-weight: 700; border-radius: 4px; color: #000; display: inline-block; font-size: 0.9em; }
+        .pref-block { margin-top: 10px; margin-bottom: 15px; }
+        .pref-name { font-weight: 700; font-size: 0.95em; color: var(--text-main); margin-bottom: 4px; padding-left: 4px; }
+        .list-points { line-height: 1.5; margin: 0; padding-left: 8px; border-left: 1px solid var(--border-color); font-size: 0.95em; }
+        
+        .settings-btn { position: absolute; top: 15px; right: 15px; z-index: 1100; width: 35px; height: 35px; cursor: pointer; border-radius: 50%; background: #fff; border: 1px solid #ccc; font-size: 18px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .ticker-btn { right: 60px; }
+        .settings-menu { position: absolute; top: 55px; right: 15px; z-index: 1100; background: #fff; color: #000; padding: 15px; border-radius: 8px; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.2); font-size: 13px; width: 240px; }
+        .settings-menu.active { display: block; }
+        .settings-label { display: block; margin-top: 12px; margin-bottom: 5px; font-weight: 700; font-size: 0.9em; border-bottom: 1px solid #ddd; padding-bottom: 3px; }
+        .settings-input { width: 100%; padding: 6px; font-family: inherit; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; margin-bottom: 5px; }
+        .oauth-btn { width: 100%; padding: 6px; background: #4b0082; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 700; }
+        .disconnect-btn { width: 100%; padding: 6px; background: #f44336; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 700; margin-top: 5px; }
+        
+        .history-panel { position: absolute; bottom: 15px; left: 15px; z-index: 1000; display: flex; gap: 8px; align-items: center; }
+        .latest-btn { background: #333; color: #fff; border: none; padding: 0 15px; height: 36px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        .search-main-btn { background: #4b0082; }
+        
+        /* EEW待機バッジ（凡例との干渉を避けるため少し上に移動） */
+        #dmdata-status { display: none; position: absolute; bottom: 80px; right: 15px; z-index: 1000; background: rgba(20, 20, 20, 0.85); color: #fff; padding: 6px 15px; border-radius: 20px; font-size: 12px; font-weight: 700; box-shadow: 0 2px 10px rgba(0,0,0,0.3); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.2); }
+
+        /* =========================================
+           【新設】凡例パネル
+           ========================================= */
+        #legend-panel {
+            position: absolute; bottom: 15px; right: 15px; z-index: 1000;
+            background: var(--panel-bg); padding: 8px 12px; border-radius: 8px;
+            border: 1px solid var(--border-color); box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            display: flex; gap: 8px; font-family: 'BIZ UDPGothic', sans-serif;
+        }
+        .legend-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font-weight: 700; color: var(--text-main); font-size: 11px; }
+        .legend-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1.5px solid #000; font-size: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+
+        /* マップアイコン共通カラー */
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
+        .epicenter-cross { color: #ff0000; font-size: 70px; font-weight: 700; text-shadow: 0 0 10px #fff; display: flex !important; align-items: center; justify-content: center; animation: blink 1s infinite; }
+        .intensity-base { display: flex !important; align-items: center; justify-content: center; border: 1.5px solid #000 !important; font-weight: 700 !important; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+        .intensity-circle { border-radius: 50% !important; } .intensity-square { border-radius: 4px !important; }
+        
+        .scale-70 { background: #8c0028; color: #fff; } .scale-60 { background: #be0000; color: #fff; } .scale-55 { background: #f03200; color: #fff; }
+        .scale-50 { background: #ff9600; color: #000; } .scale-45 { background: #ffd200; color: #000; } .scale-40 { background: #ffff96; color: #000; }
+        .scale-30 { background: #78e6dc; color: #000; } .scale-20 { background: #1e82e6; color: #fff; } .scale-10 { background: #3c5a82; color: #fff; }
+        .leaflet-tooltip { font-family: 'BIZ UDPGothic', sans-serif; font-size: 12px; padding: 6px 10px; border-radius: 4px; }
+
+        /* 検索モーダル & バッジ */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .modal-container { background: var(--panel-bg); color: var(--text-main); width: 90%; max-width: 800px; height: 85%; max-height: 800px; border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.5); overflow: hidden; border: 1px solid var(--border-color); }
+        .modal-header { background: #4b0082; color: #fff; padding: 15px 20px; font-size: 1.2em; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
+        .close-modal-btn { background: transparent; border: none; color: #fff; font-size: 1.5em; cursor: pointer; }
+        .modal-body { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; gap: 15px; overflow: hidden; }
+        
+        .search-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; background: rgba(128,128,128,0.1); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .search-form label { font-size: 0.85em; font-weight: 700; display: block; margin-bottom: 5px; }
+        .search-form input, .search-form select { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-family: inherit; font-size: 0.9em; box-sizing: border-box; background: var(--panel-bg); color: var(--text-main); }
+        .search-btn-wrap { grid-column: 1 / -1; text-align: center; margin-top: 5px; }
+        .search-btn-execute { background: #4b0082; color: #fff; border: none; padding: 10px 40px; font-size: 1em; font-weight: 700; border-radius: 6px; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        .search-btn-execute:hover { background: #3a0066; }
+        
+        .search-results-area { flex-grow: 1; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(0,0,0,0.02); }
+        .result-item { padding: 12px 15px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s; }
+        .result-item:hover { background: rgba(75, 0, 130, 0.1); }
+        .result-main { font-weight: 700; font-size: 1.05em; margin-bottom: 4px; }
+        .result-sub { font-size: 0.85em; opacity: 0.8; }
+        
+        /* 【修正】検索結果のバッジの文字色が白で固定されないよう修正 */
+        .result-scale-badge { padding: 4px 12px; border-radius: 4px; font-weight: 700; font-size: 1.1em; border: 1.5px solid #000; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+    </style>
+</head>
+<body>
+
+<div id="map"></div>
+<button class="settings-btn ticker-btn" onclick="openTicker()" title="ティッカー表示">📺</button>
+<button class="settings-btn" onclick="toggleSettings()" title="設定">⚙</button>
+
+<div id="settings-menu" class="settings-menu">
+    <label style="cursor:pointer; font-weight:700;"><input type="checkbox" id="dark-toggle" onchange="applySettings()"> ダークモード</label>
+    
+    <div id="future-dmdata-features" style="display:none;">
+        <span class="settings-label">EEW(緊急地震速報) 接続設定</span>
+        <select id="data-source" class="settings-input" onchange="applySettings()">
+            <option value="p2p">P2P地震情報のみ (通常モード)</option>
+            <option value="dmdata">将来のEEW機能を利用する (DMDATA連携)</option>
+        </select>
+        <div id="dmdata-settings" style="display:none; margin-top:10px;">
+            <button class="oauth-btn" onclick="startOAuthFlow()">DMDATAと連携して接続</button>
+            <button class="disconnect-btn" onclick="disconnectDMDATA()">DMDATAを切断する</button>
+        </div>
+    </div>
+</div>
+
+<div id="dmdata-status">EEW待機中 (DMDATA)</div>
+
+<div class="side-container">
+    <div id="main-panel" class="info-panel">
+        <div id="info-title-bar" class="info-title-bar">地震情報</div>
+        <div class="info-body">
+            <div id="eq-time-full" class="eq-time-main">----/--/-- --:--頃発生</div>
+            <div class="max-scale-row">最大震度：<span id="max-scale">--</span></div>
+            <div class="info-row">震源地：<span id="hypocenter" style="font-weight:400;">--</span></div>
+            <div class="info-row">震源の深さ：<span id="depth">--</span></div>
+            <div class="info-row">マグニチュード：<span id="magnitude">--</span></div>
+            <div id="tsunami-msg" class="tsunami-status">--</div>
+            <div id="source-credit" class="source-credit">データ提供：気象庁 / P2P地震情報API</div>
+        </div>
+    </div>
+    <div class="points-panel">
+        <div style="padding:10px 15px 2px; font-size:0.85em; font-weight:700; opacity:0.6;">各地の震度詳細</div>
+        <div id="points-content" class="points-scroll-area"></div>
+    </div>
+</div>
+
+<div class="history-panel">
+    <button class="latest-btn search-main-btn" onclick="openSearchModal()">🔍 過去の地震を検索</button>
+    <button class="latest-btn" onclick="showLatest()">最新を表示</button>
+</div>
+
+<div id="legend-panel">
+    <div class="legend-item"><div class="legend-icon scale-10">1</div></div>
+    <div class="legend-item"><div class="legend-icon scale-20">2</div></div>
+    <div class="legend-item"><div class="legend-icon scale-30">3</div></div>
+    <div class="legend-item"><div class="legend-icon scale-40">4</div></div>
+    <div class="legend-item"><div class="legend-icon scale-45">5-</div></div>
+    <div class="legend-item"><div class="legend-icon scale-50">5+</div></div>
+    <div class="legend-item"><div class="legend-icon scale-55">6-</div></div>
+    <div class="legend-item"><div class="legend-icon scale-60">6+</div></div>
+    <div class="legend-item"><div class="legend-icon scale-70">7</div></div>
+</div>
+
+<div id="search-modal" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-header">
+            過去の地震を検索 (最大100件)
+            <button class="close-modal-btn" onclick="closeSearchModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="search-form">
+                <div>
+                    <label>発生日時 (から)</label>
+                    <input type="date" id="s-since">
+                </div>
+                <div>
+                    <label>発生日時 (まで)</label>
+                    <input type="date" id="s-until">
+                </div>
+                <div>
+                    <label>最大震度 (下限)</label>
+                    <select id="s-min-scale">
+                        <option value="">指定なし</option>
+                        <option value="10">震度1</option>
+                        <option value="20">震度2</option>
+                        <option value="30">震度3</option>
+                        <option value="40">震度4</option>
+                        <option value="45">震度5弱</option>
+                        <option value="50">震度5強</option>
+                        <option value="55">震度6弱</option>
+                        <option value="60">震度6強</option>
+                        <option value="70">震度7</option>
+                    </select>
+                </div>
+                <div>
+                    <label>マグニチュード (下限)</label>
+                    <input type="number" id="s-min-mag" placeholder="例: 5.0" step="0.1" min="0">
+                </div>
+                <div>
+                    <label>情報の種類</label>
+                    <select id="s-issue">
+                        <option value="">すべて</option>
+                        <option value="ScalePrompt">震度速報</option>
+                        <option value="Destination">震源に関する情報</option>
+                        <option value="ScaleAndDestination">震源・震度情報</option>
+                        <option value="DetailScale">各地の震度情報</option>
+                        <option value="Foreign">遠地地震情報</option>
+                    </select>
+                </div>
+                <div class="search-btn-wrap">
+                    <button class="search-btn-execute" onclick="executeSearch()">この条件で検索・絞り込み</button>
+                </div>
+            </div>
+            <div id="search-results-list" class="search-results-area">
+                </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // 正式名称マップ (パネルやツールチップで使用)
+    const scaleMap = { "10": "1", "20": "2", "30": "3", "40": "4", "45": "5弱", "50": "5強", "55": "6弱", "60": "6強", "70": "7" };
+    
+    // 【新設】プロット用略称マップ (地図上のアイコンやバッジで使用)
+    const plotScaleMap = { "10": "1", "20": "2", "30": "3", "40": "4", "45": "5-", "50": "5+", "55": "6-", "60": "6+", "70": "7" };
+    
+    const issueTypeMap = { "ScalePrompt": "震度速報", "Destination": "震源に関する情報", "ScaleAndDestination": "震源・震度情報", "DetailScale": "各地の震度情報", "Foreign": "遠地地震情報" };
+
+    const map = L.map('map', { zoomControl: false }).setView([36.2, 138.2], 5);
+    const lightTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+    const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png');
+    const markerGroup = L.layerGroup().addTo(map);
+    
+    let stationMaster = [], currentData = null, isHistoryMode = false;
+    let tickerWindow = null, localWs = null, pollingInterval = null;
+
+    function getCityName(addr) {
+        const exceptions = ['四日市市', '廿日市市', '市川市', '市原市', '野々市市', '大町市', '八日市場市'];
+        for (const ex of exceptions) if (addr.startsWith(ex)) return ex;
+        let m = addr.match(/^(.+?郡.+?[町村])/); if (m) return m[1];
+        m = addr.match(/^(.+?[市区町村])/); if (m) return m[1];
+        return addr; 
+    }
+
+    function toggleSettings() { document.getElementById('settings-menu').classList.toggle('active'); }
+    function startOAuthFlow() { window.location.href = '/auth/login'; }
+    function disconnectDMDATA() { document.getElementById('data-source').value = 'p2p'; applySettings(); document.getElementById('settings-menu').classList.remove('active'); }
+    function checkUrlParams() { if (window.location.search.includes('dmdata=connected')) { window.history.replaceState({}, document.title, "/"); } }
+
+    function applySettings() {
+        const isDark = document.getElementById('dark-toggle').checked;
+        localStorage.setItem('eq_settings', JSON.stringify({ isDark, source: 'p2p' }));
+        document.body.classList.toggle('dark-theme', isDark);
+        if (isDark) { map.removeLayer(lightTiles); darkTiles.addTo(map); }
+        else { map.removeLayer(darkTiles); lightTiles.addTo(map); }
+        if (!pollingInterval) { fetchLatestP2P(); pollingInterval = setInterval(fetchLatestP2P, 3000); }
+    }
+
+    function loadSettings() {
+        const saved = JSON.parse(localStorage.getItem('eq_settings') || '{"isDark":false, "source":"p2p"}');
+        document.getElementById('dark-toggle').checked = saved.isDark;
+        document.getElementById('data-source').value = 'p2p';
+        applySettings();
+    }
+
+    function connectToLocalNode() {
+        if (localWs) return;
+        localWs = new WebSocket(`ws://${window.location.host}`);
+        const statusEl = document.getElementById('dmdata-status');
+        localWs.onopen = () => console.log("Node.js サーバーと接続完了（EEWスタンバイ中）");
+        localWs.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === "status") {
+                if (data.status === "connected") { statusEl.innerHTML = 'EEW機能: 🟢 接続済 (待機中)'; statusEl.style.color = '#4caf50'; }
+                else { statusEl.innerHTML = 'EEW機能: 🔴 切断'; statusEl.style.color = '#f44336'; }
+            }
+            if (data.type === "dmdata_eew_standby") console.log("⚡ EEWデータ受信:", data.payload);
+        };
+        localWs.onclose = () => { localWs = null; if (document.getElementById('data-source').value === 'dmdata') setTimeout(connectToLocalNode, 3000); };
+    }
+
+    async function fetchLatestP2P() {
+        if (isHistoryMode) return; 
+        try {
+            const res = await fetch("https://api.p2pquake.net/v2/jma/quake?limit=1");
+            const data = await res.json();
+            if (data[0] && data[0].earthquake && data[0].issue && (!currentData || data[0].id !== currentData.id)) {
+                updateDisplay(data[0], true);
+            }
+        } catch (e) {}
+    }
+
+    function showLatest() {
+        isHistoryMode = false;
+        currentData = null; 
+        fetchLatestP2P();
+    }
+
+    /* 検索・フィルタリング処理 */
+    let searchCache = []; 
+
+    function openSearchModal() {
+        document.getElementById('search-modal').style.display = 'flex';
+        if(document.getElementById('search-results-list').innerHTML.trim() === '') {
+            executeSearch();
+        }
+    }
+
+    function closeSearchModal() {
+        document.getElementById('search-modal').style.display = 'none';
+    }
+
+    async function executeSearch() {
+        const resultsArea = document.getElementById('search-results-list');
+        resultsArea.innerHTML = '<div style="padding:30px; text-align:center; font-weight:700;">サーバーから取得中...</div>';
+        
+        const since = document.getElementById('s-since').value.replace(/-/g, '');
+        const until = document.getElementById('s-until').value.replace(/-/g, '');
+        const minScale = document.getElementById('s-min-scale').value;
+        const issueType = document.getElementById('s-issue').value;
+        const minMag = parseFloat(document.getElementById('s-min-mag').value) || 0;
+
+        let url = 'https://api.p2pquake.net/v2/jma/quake?limit=100';
+        if (since) url += `&since_date=${since}`;
+        if (until) url += `&until_date=${until}`;
+        if (minScale) url += `&min_scale=${minScale}`;
+        if (issueType) url += `&issue_type=${issueType}`;
+
+        try {
+            const res = await fetch(url);
+            let data = await res.json();
+            data = data.filter(item => item.earthquake && item.issue);
+
+            if (minMag > 0) {
+                data = data.filter(item => {
+                    const mag = item.earthquake.hypocenter?.magnitude;
+                    return (mag !== undefined && mag !== -1 && mag >= minMag);
+                });
+            }
+            renderSearchResults(data);
+        } catch (e) {
+            resultsArea.innerHTML = '<div style="padding:30px; text-align:center; color:red; font-weight:700;">取得エラーが発生しました。時間を空けてお試しください。</div>';
+        }
+    }
+
+    function renderSearchResults(data) {
+        searchCache = data;
+        const resultsArea = document.getElementById('search-results-list');
+        
+        if (data.length === 0) {
+            resultsArea.innerHTML = '<div style="padding:30px; text-align:center; font-weight:700;">該当する地震データが見つかりませんでした。</div>';
+            return;
+        }
+        
+        let html = '';
+        data.forEach(eq => {
+            const e = eq.earthquake || {}, h = e.hypocenter || {}, issue = eq.issue || {};
+            const typeStr = issueTypeMap[issue.type] || "地震情報";
+            
+            // 【修正】検索結果の文字を「5+」などの略称にし、マップと完全に連動させる
+            const plotScaleStr = (e.maxScale !== undefined && e.maxScale !== -1) ? (plotScaleMap[e.maxScale] || '?') : '-';
+            
+            const magStr = (h.magnitude !== undefined && h.magnitude !== -1) ? `M${h.magnitude}` : '調査中';
+            const hypName = h.name ? h.name : '震源調査中';
+            const tsMsg = !(e.domesticTsunami === "None" || e.domesticTsunami === "NonEffective" || e.domesticTsunami === "Unknown" || e.domesticTsunami === undefined) ? "<span style='color:red'>津波情報あり</span>" : "津波の心配なし";
+            
+            let badgeClass = `scale-${e.maxScale}`;
+            if (e.maxScale === undefined || e.maxScale === -1) badgeClass = 'scale-10';
+
+            html += `
+                <div class="result-item" onclick="selectHistoryItem('${eq.id}')">
+                    <div>
+                        <div class="result-main">【${typeStr}】${hypName} (${magStr})</div>
+                        <div class="result-sub">発生：${e.time || '不明'} ｜ ${tsMsg}</div>
+                    </div>
+                    <div class="result-scale-badge ${badgeClass}">震度 ${plotScaleStr}</div>
+                </div>
+            `;
+        });
+        resultsArea.innerHTML = html;
+    }
+
+    function selectHistoryItem(id) {
+        const d = searchCache.find(item => item.id === id);
+        if (d) {
+            isHistoryMode = true;
+            updateDisplay(d, true);
+            closeSearchModal();
+        }
+    }
+
+    function updateDisplay(data, shouldFit) {
+        currentData = data;
+        const e = data.earthquake || {}, h = e.hypocenter || {}, pts = data.points || [], issue = data.issue || {}, bounds = [];
+        const isQuickReport = issue.type === "ScalePrompt";
+        const iconShapeClass = isQuickReport ? "intensity-square" : "intensity-circle";
+
+        document.getElementById('info-title-bar').innerText = issueTypeMap[issue.type] || "地震情報";
+        document.getElementById('eq-time-full').innerText = (e.time || '----/--/-- --:--') + ' 頃発生';
+        document.getElementById('max-scale').innerText = (e.maxScale !== undefined && e.maxScale !== -1) ? (scaleMap[e.maxScale] || '?') : '調査中';
+        document.getElementById('hypocenter').innerText = h.name ? h.name : '調査中';
+        document.getElementById('depth').innerText = (h.depth === undefined || h.depth === -1) ? '調査中' : (h.depth === 0 ? "ごく浅い" : `約${h.depth}km`);
+        document.getElementById('magnitude').innerText = (h.magnitude === undefined || h.magnitude === -1) ? '調査中' : `M${h.magnitude}`;
+        
+        const tsMsg = document.getElementById('tsunami-msg');
+        if (e.domesticTsunami === "Unknown" || e.domesticTsunami === undefined) { tsMsg.innerText = "津波の有無は現在調査中です。"; tsMsg.className = "tsunami-status tsunami-none"; } 
+        else if (!(e.domesticTsunami === "None" || e.domesticTsunami === "NonEffective")) { tsMsg.innerText = "この地震によって津波情報が発表されています。"; tsMsg.className = "tsunami-status tsunami-active"; } 
+        else { tsMsg.innerText = "この地震による津波の心配はありません。"; tsMsg.className = "tsunami-status tsunami-none"; }
+
+        markerGroup.clearLayers();
+        const content = document.getElementById('points-content');
+        content.innerHTML = '';
+        
+        if (pts.length > 0) {
+            const grouped = {};
+            pts.forEach(pt => {
+                const s = String(pt.scale);
+                const pref = pt.pref || (pt.addr.match(/^(.+?[都道府県])/)?.[1]) || "不明";
+                if (!grouped[s]) grouped[s] = {};
+                if (!grouped[s][pref]) grouped[s][pref] = new Set();
+                grouped[s][pref].add(getCityName(pt.addr));
+
+                let st = stationMaster.find(m => pt.addr.includes(m.name));
+                if (!st && isQuickReport) st = stationMaster.find(m => (m.region && m.region === pt.addr) || (m.pref && pt.addr.startsWith(m.pref)));
+
+                if (st) {
+                    const pos = [parseFloat(st.lat || st.latitude), parseFloat(st.lng || st.lon || st.longitude)];
+                    bounds.push(pos);
+                    // 【修正】マップ上のアイコンの文字を plotScaleMap (5+, 6- など) に変更！
+                    L.marker(pos, { icon: L.divIcon({ className: `intensity-base ${iconShapeClass} scale-${pt.scale}`, html: plotScaleMap[s], iconSize: [26, 26] }), zIndexOffset: pt.scale * 10 }).addTo(markerGroup).bindTooltip(`<b>【震度${scaleMap[s]}】</b><br>${pt.addr}`, { sticky: true });
+                }
+            });
+
+            [70, 60, 55, 50, 45, 40, 30, 20, 10].forEach(s => {
+                if (grouped[s]) {
+                    let html = `<div><div class="list-group-header scale-${s}">震度 ${scaleMap[s]}</div></div>`;
+                    for (const pref in grouped[s]) html += `<div class="pref-block"><div class="pref-name">【${pref}】</div><div class="list-points">${Array.from(grouped[s][pref]).join('、')}</div></div>`;
+                    content.innerHTML += html;
+                }
+            });
+        } else {
+            content.innerHTML = '<div style="padding: 10px; color: #666;">詳細な観測データは現在入電待ちです...</div>';
+        }
+
+        const isValidEpicenter = h.latitude !== undefined && h.latitude !== -1 && h.latitude !== 200 && h.name;
+        if (isValidEpicenter) {
+            const hPos = [h.latitude, h.longitude];
+            bounds.push(hPos);
+            L.marker(hPos, { icon: L.divIcon({ className: 'epicenter-cross', html: '×', iconSize: [80, 80] }), zIndexOffset: 1000 }).addTo(markerGroup);
+        }
+
+        if (shouldFit && bounds.length > 0) map.fitBounds(bounds, { padding: [80, 80], maxZoom: 8 });
+        updateTickerIfOpen(data);
+    }
+
+    function getTickerPayload(data) {
+        if (!data) return { header: "受信待機中...", queue: [{scale: "【待機】", text: "データを読み込んでいます"}] };
+        const e = data.earthquake || {}, h = e.hypocenter || {}, issue = data.issue || {};
+        const typeStr = issueTypeMap[issue.type] || "地震情報";
+        const tsMsg = !(e.domesticTsunami === "None" || e.domesticTsunami === "NonEffective" || e.domesticTsunami === "Unknown" || e.domesticTsunami === undefined) ? "<span style='color:#ff4444'>津波情報が発表されています</span>" : ((e.domesticTsunami === "Unknown" || e.domesticTsunami === undefined) ? "津波の有無は調査中" : "津波の心配はありません");
+        const scaleStr = (e.maxScale !== undefined && e.maxScale !== -1) ? (scaleMap[e.maxScale] || '?') : '調査中';
+        const hypName = h.name ? h.name : '調査中';
+        const depthStr = (h.depth === undefined || h.depth === -1) ? '調査中' : (h.depth === 0 ? "ごく浅い" : `約${h.depth}km`);
+        const magStr = (h.magnitude === undefined || h.magnitude === -1) ? '調査中' : `M${h.magnitude}`;
+        const header = `【${typeStr}】発生時刻：${e.time || '調査中'} / 最大震度：${scaleStr} / 震源地：${hypName} / マグニチュード：${magStr} / 深さ：${depthStr} / ${tsMsg}`;
+        
+        let queue = [];
+        if (data.points && data.points.length > 0) {
+            const grouped = {};
+            data.points.forEach(pt => {
+                const s = String(pt.scale);
+                const pref = pt.pref || (pt.addr.match(/^(.+?[都道府県])/)?.[1]) || "不明";
+                if (!grouped[s]) grouped[s] = {};
+                if (!grouped[s][pref]) grouped[s][pref] = new Set();
+                grouped[s][pref].add(getCityName(pt.addr));
+            });
+            [70, 60, 55, 50, 45, 40, 30, 20, 10].forEach(s => {
+                if (grouped[s]) {
+                    let text = "";
+                    for (const pref in grouped[s]) text += `【${pref}】${Array.from(grouped[s][pref]).join('、')}　　`;
+                    queue.push({ scale: `【震度${scaleMap[s]}】`, text: text });
+                }
+            });
+        }
+        if (queue.length === 0) queue.push({ scale: "【情報】", text: "詳細な観測データはまだ入電していません" });
+        return { header, queue };
+    }
+
+    function openTicker() {
+        if (tickerWindow && !tickerWindow.closed) { tickerWindow.focus(); return; }
+        tickerWindow = window.open('', 'EqTicker', 'width=1000,height=120,top=0,left=0');
+        const payload = getTickerPayload(currentData);
+        const sOpen = '<sc' + 'ript>'; const sClose = '</sc' + 'ript>';
+        const tickerHTML = `
+            <!DOCTYPE html>
+            <html lang="ja">
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    body { margin: 0; background: #000; color: #fff; overflow: hidden; font-family: 'BIZ UDPGothic', sans-serif; display: flex; flex-direction: column; height: 100vh; }
+                    #t-header { background: #4b0082; padding: 12px 20px; font-size: 20px; font-weight: 700; border-bottom: 2px solid #555; white-space: nowrap; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; }
+                    #ticker-area { display: flex; flex-grow: 1; align-items: center; background: #111; font-size: 28px; font-weight: 700; overflow: hidden; }
+                    #scale-badge { background: #222; color: #ffeb3b; padding: 0 15px; height: 100%; display: flex; align-items: center; white-space: nowrap; z-index: 10; box-shadow: 2px 0 10px rgba(0,0,0,0.8); }
+                    .marquee-wrap { flex-grow: 1; overflow: hidden; white-space: nowrap; position: relative; height: 100%; display: flex; align-items: center; }
+                    #marquee-text { display: inline-block; padding-left: 100%; color: #fff; }
+                    @keyframes scroll { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }
+                </style>
+            </head>
+            <body>
+                <div id="t-header">${payload.header}</div>
+                <div id="ticker-area"><div id="scale-badge"></div><div class="marquee-wrap"><div id="marquee-text"></div></div></div>
+                ${sOpen}
+                    let queue = ${JSON.stringify(payload.queue)}; let currentIndex = 0;
+                    const marqueeEl = document.getElementById('marquee-text'); const badgeEl = document.getElementById('scale-badge'); const headerEl = document.getElementById('t-header');
+                    function playNext() {
+                        if (!queue || queue.length === 0) return;
+                        const item = queue[currentIndex];
+                        badgeEl.innerHTML = item.scale + '<span style="color:#aaa; margin-left:10px;">｜</span>';
+                        marqueeEl.innerText = item.text;
+                        const duration = Math.max(8, item.text.length * 0.15 + 5);
+                        marqueeEl.style.animation = 'none'; void marqueeEl.offsetWidth; 
+                        marqueeEl.style.animation = 'scroll ' + duration + 's linear 1 forwards';
+                    }
+                    marqueeEl.addEventListener('animationend', () => { currentIndex = (currentIndex + 1) % queue.length; playNext(); });
+                    window.updateData = function(newHeader, newQueue) { headerEl.innerHTML = newHeader; queue = newQueue; currentIndex = 0; playNext(); };
+                    playNext();
+                ${sClose}
+            </body>
+            </html>
+        `;
+        tickerWindow.document.open(); tickerWindow.document.write(tickerHTML); tickerWindow.document.close();
+    }
+
+    function updateTickerIfOpen(data) {
+        if (tickerWindow && !tickerWindow.closed && tickerWindow.updateData) {
+            const payload = getTickerPayload(data);
+            tickerWindow.updateData(payload.header, payload.queue);
+        }
+    }
+
+    async function init() {
+        checkUrlParams();
+        loadSettings();
+        try {
+            const res = await fetch("https://potato1115.github.io/github.io/kansokuchiten.json");
+            stationMaster = await res.json();
+        } catch (e) { setTimeout(init, 5000); }
+    }
+
+    init();
+</script>
+</body>
+</html>
