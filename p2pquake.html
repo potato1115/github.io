@@ -2,13 +2,13 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>地震情報モニター</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
     <style>
         /* =========================================
-           UI BASELINE (一切変更なし)
+           UI BASELINE (PC版のメインUIは一切変更なし)
            ========================================= */
         :root { --panel-bg: rgba(255, 255, 255, 0.98); --text-main: #000; --border-color: #000; --max-scale-color: #000; }
         .dark-theme { --panel-bg: rgba(20, 20, 20, 0.95); --text-main: #fff; --border-color: #555; --max-scale-color: #ffeb3b; }
@@ -81,6 +81,64 @@
         .result-main { font-weight: 700; font-size: 1.05em; margin-bottom: 4px; }
         .result-sub { font-size: 0.85em; opacity: 0.8; }
         .result-scale-badge { padding: 4px 12px; border-radius: 4px; font-weight: 700; font-size: 1.1em; border: 1.5px solid #000; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+
+        /* =========================================
+           【新設】レスポンシブ対応 (モバイル・タブレット)
+           ========================================= */
+        @media screen and (max-width: 850px) {
+            /* 1. 画面全体のスクロールを許可し、背景色を少し落としてパネルを目立たせる */
+            html, body { overflow-y: auto !important; height: auto !important; min-height: 100vh; }
+            body { 
+                display: flex; flex-direction: column; align-items: center; 
+                padding: 15px; gap: 15px; box-sizing: border-box;
+            }
+            body:not(.dark-theme) { background: #e9ecef; }
+            .dark-theme body { background: #0a0a0a; }
+
+            /* 2. 地図の配置：一番上・左右余白あり */
+            #map { 
+                position: relative !important; width: 100% !important; max-width: 600px; 
+                height: 35vh !important; min-height: 250px !important; 
+                border-radius: 12px; border: 1px solid var(--border-color); 
+                order: 1; z-index: 1; flex-shrink: 0; box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+            }
+            
+            /* 3. 凡例：横スクロール対応 */
+            #legend-panel { 
+                position: relative !important; bottom: auto !important; right: auto !important; 
+                order: 2; width: 100%; max-width: 600px; overflow-x: auto; 
+                justify-content: flex-start; padding: 12px 15px; box-sizing: border-box; flex-shrink: 0; 
+            }
+            #legend-panel::-webkit-scrollbar { height: 6px; }
+            #legend-panel::-webkit-scrollbar-thumb { background: #aaa; border-radius: 3px; }
+            .legend-item { flex-shrink: 0; min-width: 40px; }
+
+            /* 4. 検索・最新ボタン */
+            .history-panel { 
+                position: relative !important; bottom: auto !important; left: auto !important; 
+                order: 3; width: 100%; max-width: 600px; display: flex; gap: 10px; 
+                box-sizing: border-box; flex-shrink: 0; 
+            }
+            .history-panel button { flex: 1; margin: 0; height: 48px; font-size: 14px; }
+
+            /* 5. 情報パネル群（概要→詳細の順で下に伸びる） */
+            .side-container { 
+                position: relative !important; top: auto !important; left: auto !important; 
+                order: 4; width: 100% !important; max-width: 600px; max-height: none !important; 
+                display: flex; flex-direction: column; gap: 15px; box-sizing: border-box; flex-shrink: 0; 
+            }
+            
+            /* 各地の詳細リストは内部スクロールをやめて、画面全体のスクロールに任せる */
+            .points-panel { overflow: visible !important; }
+            .points-scroll-area { overflow-y: visible !important; max-height: none !important; padding-bottom: 20px; }
+
+            /* 6. 設定・フローティングボタン（画面スクロールについてくるように固定） */
+            .settings-btn { position: fixed !important; top: 15px !important; z-index: 2000 !important; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+            .settings-btn.ticker-btn { right: 65px !important; }
+            .settings-btn:not(.ticker-btn) { right: 15px !important; }
+            .settings-menu { position: fixed !important; top: 60px !important; right: 15px !important; z-index: 2000 !important; }
+            #dmdata-status { position: fixed !important; bottom: 15px !important; right: 15px !important; z-index: 2000 !important; }
+        }
     </style>
 </head>
 <body>
@@ -91,6 +149,7 @@
 
 <div id="settings-menu" class="settings-menu">
     <label style="cursor:pointer; font-weight:700;"><input type="checkbox" id="dark-toggle" onchange="applySettings()"> ダークモード</label>
+    
     <div id="future-dmdata-features" style="display:none;">
         <span class="settings-label">EEW(緊急地震速報) 接続設定</span>
         <select id="data-source" class="settings-input" onchange="applySettings()">
@@ -191,8 +250,6 @@
     let stationMaster = [], currentData = null, isHistoryMode = false;
     let tickerWindow = null, localWs = null, pollingInterval = null;
     let stationCache = {}; 
-    
-    // 【新設】非同期処理のキャンセルトークン（連打防止）
     let currentRenderTask = 0;
 
     function getCityName(addr) {
@@ -222,6 +279,22 @@
         document.getElementById('dark-toggle').checked = saved.isDark;
         document.getElementById('data-source').value = 'p2p';
         applySettings();
+    }
+
+    function connectToLocalNode() {
+        if (localWs) return;
+        localWs = new WebSocket(`ws://${window.location.host}`);
+        const statusEl = document.getElementById('dmdata-status');
+        localWs.onopen = () => console.log("Node.js サーバーと接続完了（EEWスタンバイ中）");
+        localWs.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === "status") {
+                if (data.status === "connected") { statusEl.innerHTML = 'EEW機能: 🟢 接続済 (待機中)'; statusEl.style.color = '#4caf50'; }
+                else { statusEl.innerHTML = 'EEW機能: 🔴 切断'; statusEl.style.color = '#f44336'; }
+            }
+            if (data.type === "dmdata_eew_standby") console.log("⚡ EEWデータ受信:", data.payload);
+        };
+        localWs.onclose = () => { localWs = null; if (document.getElementById('data-source').value === 'dmdata') setTimeout(connectToLocalNode, 3000); };
     }
 
     async function fetchLatestP2P() {
@@ -298,11 +371,7 @@
         if (d) { isHistoryMode = true; updateDisplayAsync(d, true); closeSearchModal(); }
     }
 
-    /* =========================================
-       【超重要】非同期・分割プロット処理（スマホフリーズ対策）
-       ========================================= */
     async function updateDisplayAsync(data, shouldFit) {
-        // キャンセルトークンを更新（前の描画処理をストップさせる）
         currentRenderTask++;
         const renderId = currentRenderTask;
         
@@ -311,7 +380,6 @@
         const isQuickReport = issue.type === "ScalePrompt";
         const iconShapeClass = isQuickReport ? "intensity-square" : "intensity-circle";
 
-        // UIのテキスト部分は一瞬で終わるので同期処理
         document.getElementById('info-title-bar').innerText = issueTypeMap[issue.type] || "地震情報";
         document.getElementById('eq-time-full').innerText = (e.time || '----/--/-- --:--') + ' 頃発生';
         document.getElementById('max-scale').innerText = (e.maxScale !== undefined && e.maxScale !== -1) ? (scaleMap[e.maxScale] || '?') : '調査中';
@@ -330,7 +398,6 @@
         if (pts.length === 0) {
             content.innerHTML = '<div style="padding: 10px; color: #666;">詳細な観測データは現在入電待ちです...</div>';
         } else {
-            // プロット中はロード中の文字を出す
             content.innerHTML = `<div style="padding: 15px; font-weight:700; color: #4b0082;">📡 ${pts.length}件の観測データを展開中...</div>`;
             
             const grouped = {};
@@ -342,7 +409,6 @@
                 grouped[s][pref].add(getCityName(pt.addr));
             });
 
-            // リストのHTML生成
             let listHtml = '';
             [70, 60, 55, 50, 45, 40, 30, 20, 10].forEach(s => {
                 if (grouped[s]) {
@@ -352,10 +418,8 @@
             });
             content.innerHTML = listHtml;
 
-            // ▼ 非同期プロット処理 (チャンク分割)
-            const chunkSize = 50; // 50件ずつ描画してブラウザを休憩させる
+            const chunkSize = 50; 
             for (let i = 0; i < pts.length; i += chunkSize) {
-                // もし新しい地震がクリックされていたら、このループを中止する
                 if (currentRenderTask !== renderId) return;
 
                 const chunk = pts.slice(i, i + chunkSize);
@@ -374,13 +438,10 @@
                         L.marker(pos, { icon: L.divIcon({ className: `intensity-base ${iconShapeClass} scale-${pt.scale}`, html: plotScaleMap[s], iconSize: [26, 26] }), zIndexOffset: pt.scale * 10 }).addTo(markerGroup).bindTooltip(`<b>【震度${scaleMap[s]}】</b><br>${pt.addr}`, { sticky: true });
                     }
                 });
-
-                // ブラウザに描画する隙間を与える (非同期の息継ぎ)
                 await new Promise(resolve => setTimeout(resolve, 0));
             }
         }
 
-        // 全件プロット完了後、震源地を刺してズームを合わせる
         if (currentRenderTask === renderId) {
             const isValidEpicenter = h.latitude !== undefined && h.latitude !== -1 && h.latitude !== 200 && h.name;
             if (isValidEpicenter) {
@@ -477,6 +538,11 @@
             tickerWindow.updateData(payload.header, payload.queue);
         }
     }
+
+    // ★ ウィンドウのサイズが変わった時（スマホの横持ちなど）に地図の枠の崩れを自動修復する機能
+    window.addEventListener('resize', () => {
+        if (map) map.invalidateSize();
+    });
 
     async function init() {
         checkUrlParams();
