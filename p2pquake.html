@@ -3,12 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="地震モニター">
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="manifest" href="manifest.json">
     <title>地震情報モニター</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
     <style>
         /* =========================================
-           UI BASELINE (メインUIは一切変更なし)
+           UI BASELINE
            ========================================= */
         :root { --panel-bg: rgba(255, 255, 255, 0.98); --text-main: #000; --border-color: #000; --max-scale-color: #000; }
         .dark-theme { --panel-bg: rgba(20, 20, 20, 0.95); --text-main: #fff; --border-color: #555; --max-scale-color: #ffeb3b; }
@@ -40,6 +45,12 @@
         .settings-label { display: block; margin-top: 12px; margin-bottom: 5px; font-weight: 700; font-size: 0.9em; border-bottom: 1px solid #ddd; padding-bottom: 3px; }
         .settings-input { width: 100%; padding: 6px; font-family: inherit; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; margin-bottom: 5px; }
         .oauth-btn { width: 100%; padding: 6px; background: #4b0082; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 700; }
+        
+        /* 通知ボタン用スタイル */
+        .notify-btn { width: 100%; padding: 8px; background: #1e82e6; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 700; margin-top: 10px; font-size: 14px; }
+        .notify-btn.granted { background: #4caf50; cursor: default; }
+        .notify-btn.test-btn { background: #ff9800; margin-top: 6px; } /* テストボタンのオレンジ色 */
+
         .disconnect-btn { width: 100%; padding: 6px; background: #f44336; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 700; margin-top: 5px; }
         
         .history-panel { position: absolute; bottom: 15px; left: 15px; z-index: 1000; display: flex; gap: 8px; align-items: center; }
@@ -74,7 +85,6 @@
         .search-form input, .search-form select { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-family: inherit; font-size: 0.9em; box-sizing: border-box; background: var(--panel-bg); color: var(--text-main); }
         .search-btn-wrap { grid-column: 1 / -1; text-align: center; margin-top: 5px; }
         .search-btn-execute { background: #4b0082; color: #fff; border: none; padding: 10px 40px; font-size: 1em; font-weight: 700; border-radius: 6px; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
-        .search-btn-execute:hover { background: #3a0066; }
         
         .search-results-area { flex-grow: 1; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(0,0,0,0.02); }
         .result-item { padding: 12px 15px; border-bottom: 1px solid var(--border-color); cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s; }
@@ -123,6 +133,10 @@
 
 <div id="settings-menu" class="settings-menu">
     <label style="cursor:pointer; font-weight:700;"><input type="checkbox" id="dark-toggle" onchange="applySettings()"> ダークモード</label>
+    
+    <button id="notify-btn" class="notify-btn" onclick="requestNotification()">🔔 通知を許可する</button>
+    <button id="notify-test-btn" class="notify-btn test-btn" onclick="testNotification()" style="display:none;">📲 通知テストを送信</button>
+
     <div id="future-dmdata-features" style="display:none;">
         <span class="settings-label">EEW(緊急地震速報) 接続設定</span>
         <select id="data-source" class="settings-input" onchange="applySettings()">
@@ -211,6 +225,12 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').then(() => {
+            console.log('Service Worker Registered');
+        });
+    }
+
     const scaleMap = { "10": "1", "20": "2", "30": "3", "40": "4", "45": "5弱", "50": "5強", "55": "6弱", "60": "6強", "70": "7" };
     const plotScaleMap = { "10": "1", "20": "2", "30": "3", "40": "4", "45": "5-", "50": "5+", "55": "6-", "60": "6+", "70": "7" };
     const issueTypeMap = { "ScalePrompt": "震度速報", "Destination": "震源に関する情報", "ScaleAndDestination": "震源・震度情報", "DetailScale": "各地の震度情報", "Foreign": "遠地地震情報" };
@@ -224,7 +244,79 @@
     let tickerWindow = null, localWs = null, pollingInterval = null;
     let stationCache = {}; 
     let currentRenderTask = 0;
+    
+    // ==========================================
+    // 【通知・PWA 関連システム】
+    // ==========================================
+    function checkNotificationStatus() {
+        const btn = document.getElementById('notify-btn');
+        const testBtn = document.getElementById('notify-test-btn');
+        
+        if (!("Notification" in window)) {
+            btn.style.display = 'none'; 
+            testBtn.style.display = 'none';
+            return;
+        }
+        if (Notification.permission === "granted") {
+            btn.innerText = "🔔 通知許可済み";
+            btn.classList.add('granted');
+            btn.onclick = null;
+            testBtn.style.display = 'block'; // 許可済みの時だけテストボタンを表示
+        } else {
+            testBtn.style.display = 'none';
+        }
+    }
 
+    function requestNotification() {
+        Notification.requestPermission().then(permission => {
+            checkNotificationStatus();
+            if (permission === "granted") {
+                triggerNotification("設定完了", { body: "地震情報を受信した際にお知らせします。", icon: "icon.png" });
+            }
+        });
+    }
+
+    // ★ iOS/PWAでも安定して鳴らすための汎用通知トリガー関数
+    function triggerNotification(title, options) {
+        if (Notification.permission !== "granted") return;
+        
+        if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
+            navigator.serviceWorker.ready.then(registration => {
+                registration.showNotification(title, options);
+            }).catch(() => {
+                new Notification(title, options); // フォールバック
+            });
+        } else {
+            new Notification(title, options);
+        }
+    }
+
+    // テスト通知送信ボタンの処理
+    function testNotification() {
+        triggerNotification("📲 テスト通知", {
+            body: "地震モニターからの通知が正常に届いています！\n(※これはテストメッセージです)",
+            icon: "icon.png"
+        });
+    }
+
+    // 地震データが来た時の通知処理
+    function sendEarthquakeNotification(data) {
+        if (Notification.permission !== "granted") return;
+        
+        const e = data.earthquake || {}, h = e.hypocenter || {}, issue = data.issue || {};
+        const typeStr = issueTypeMap[issue.type] || "地震情報";
+        const scaleStr = (e.maxScale !== undefined && e.maxScale !== -1) ? (scaleMap[e.maxScale] || '?') : '調査中';
+        const hypName = h.name ? h.name : '調査中';
+        
+        let title = `【${typeStr}】最大震度${scaleStr}`;
+        let bodyText = `震源地: ${hypName}\n発生時刻: ${e.time || '不明'}`;
+        
+        triggerNotification(title, { body: bodyText, icon: "icon.png" });
+    }
+
+    // ==========================================
+    // UI・マップ描画ロジック
+    // ==========================================
     function getCityName(addr) {
         const exceptions = ['四日市市', '廿日市市', '市川市', '市原市', '野々市市', '大町市', '八日市場市'];
         for (const ex of exceptions) if (addr.startsWith(ex)) return ex;
@@ -258,25 +350,25 @@
         if (localWs) return;
         localWs = new WebSocket(`ws://${window.location.host}`);
         const statusEl = document.getElementById('dmdata-status');
-        localWs.onopen = () => console.log("Node.js サーバーと接続完了（EEWスタンバイ中）");
+        localWs.onopen = () => console.log("Node.js サーバーと接続完了");
         localWs.onmessage = (event) => {
             const data = JSON.parse(event.data);
             if (data.type === "status") {
                 if (data.status === "connected") { statusEl.innerHTML = 'EEW機能: 🟢 接続済 (待機中)'; statusEl.style.color = '#4caf50'; }
                 else { statusEl.innerHTML = 'EEW機能: 🔴 切断'; statusEl.style.color = '#f44336'; }
             }
-            if (data.type === "dmdata_eew_standby") console.log("⚡ EEWデータ受信:", data.payload);
         };
         localWs.onclose = () => { localWs = null; if (document.getElementById('data-source').value === 'dmdata') setTimeout(connectToLocalNode, 3000); };
     }
 
-    // ★ 【最重要】最新情報の待機は最速の /v2/history (コード551) を使用！
     async function fetchLatestP2P() {
         if (isHistoryMode) return; 
         try {
             const res = await fetch("https://api.p2pquake.net/v2/history?codes=551&limit=1");
             const data = await res.json();
+            
             if (data[0] && data[0].earthquake && data[0].issue && (!currentData || data[0].id !== currentData.id)) {
+                if (currentData) sendEarthquakeNotification(data[0]); 
                 updateDisplayAsync(data[0], true);
             }
         } catch (e) {}
@@ -292,7 +384,6 @@
     function openSearchModal() { document.getElementById('search-modal').style.display = 'flex'; if(document.getElementById('search-results-list').innerHTML.trim() === '') executeSearch(); }
     function closeSearchModal() { document.getElementById('search-modal').style.display = 'none'; }
 
-    // ★ 過去データの検索は、絞り込みに特化した /v2/jma/quake を使用！
     async function executeSearch() {
         const resultsArea = document.getElementById('search-results-list');
         resultsArea.innerHTML = '<div style="padding:30px; text-align:center; font-weight:700;">サーバーから取得中...</div>';
@@ -517,12 +608,13 @@
     window.addEventListener('resize', () => { if (map) map.invalidateSize(); });
 
     async function init() {
+        checkNotificationStatus(); 
         checkUrlParams();
-        loadSettings();
         try {
             const res = await fetch("https://potato1115.github.io/github.io/kansokuchiten.json");
             stationMaster = await res.json();
-        } catch (e) { setTimeout(init, 5000); }
+        } catch (e) { setTimeout(init, 5000); return; }
+        loadSettings();
     }
 
     init();
