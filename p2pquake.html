@@ -210,7 +210,7 @@
     let epicenterMarker = null;    
 
     // ==========================================
-    // ★ ズーム追従対応・3倍パディングCanvas ★
+    // ★ スマホ最適化：クラッシュ＆ズレ防止版 Canvas ★
     // ==========================================
     const PointCanvasLayer = L.Layer.extend({
         initialize: function (points, isQuickReport) {
@@ -222,11 +222,11 @@
             this._map = map;
             this._canvas = L.DomUtil.create('canvas', 'leaflet-zoom-animated');
             this._canvas.style.pointerEvents = 'none';
-            map.getPane('overlayPane').appendChild(this._canvas);
+            // ★ スマホでのズーム挙動を完璧にするための超重要設定
+            this._canvas.style.transformOrigin = '0 0'; 
             
-            // ズーム・パンが「終わった時」に画用紙を新しく用意する
+            map.getPane('overlayPane').appendChild(this._canvas);
             map.on('moveend zoomend viewreset resize', this._update, this);
-            // ピンチズーム「中」に画用紙をリアルタイムで引き伸ばす
             map.on('zoomanim', this._animateZoom, this);
             
             this._update();
@@ -246,25 +246,20 @@
             if (!this._map) return;
             const size = this._map.getSize();
             
-            // ★ スマホのスクロールで端が切れないよう、画面の3倍の広さの画用紙を用意
-            const padX = size.x;
-            const padY = size.y;
-            const width = size.x + padX * 2;
-            const height = size.y + padY * 2;
+            // ★ iOS Safariの限界（Canvasが真っ白になる現象）を突破するため、パディングを0.3に調整
+            const pad = 0.3;
+            const padX = size.x * pad;
+            const padY = size.y * pad;
+            const width = Math.round(size.x + padX * 2);
+            const height = Math.round(size.y + padY * 2);
             
-            // 地図の中心から画用紙の「左上」の座標を計算
-            const center = this._map.getCenter();
-            const centerPt = this._map.latLngToLayerPoint(center);
+            const centerPt = this._map.latLngToLayerPoint(this._map.getCenter());
             const topLeftLayer = L.point(centerPt.x - width / 2, centerPt.y - height / 2);
             
-            // ズームアニメーション用に左上の緯度経度を記憶
             this._topLeftLatLng = this._map.layerPointToLatLng(topLeftLayer);
             
-            // 画用紙を地図の上に配置
+            // 位置のリセット（これによりスケール倍率も自動的に1に戻る）
             L.DomUtil.setPosition(this._canvas, topLeftLayer);
-            
-            // ズーム中の引き伸ばし(scale)をリセットして綺麗に描き直す準備
-            this._canvas.style.transform = this._canvas.style.transform.replace(/ scale\([^\)]+\)/, '') + ' scale(1)';
             
             const dpr = window.devicePixelRatio || 1;
             this._canvas.width = width * dpr;
@@ -294,11 +289,9 @@
             for (let i = 0; i < this.points.length; i++) {
                 let p = this.points[i];
                 let layerPt = this._map.latLngToLayerPoint(p.latLng);
-                // 画用紙の左上を(0,0)としたときの相対座標
                 let cx = layerPt.x - topLeftLayer.x;
                 let cy = layerPt.y - topLeftLayer.y;
 
-                // 3倍画用紙の外にはみ出るピンはスキップしてさらに軽くする
                 if (cx < -30 || cx > width + 30 || cy < -30 || cy > height + 30) continue;
 
                 let size = 22; let half = size / 2;
@@ -336,6 +329,8 @@
             } else { mapTooltip.removeFrom(map); }
         }
     });
+
+    // ==========================================
 
     function checkNotificationStatus() {
         const btn = document.getElementById('notify-btn'); const testBtn = document.getElementById('notify-test-btn');
