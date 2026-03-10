@@ -42,8 +42,6 @@
         .ticker-btn { right: 60px; }
         .settings-menu { position: absolute; top: 55px; right: 15px; z-index: 1100; background: #fff; color: #000; padding: 15px; border-radius: 8px; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.2); font-size: 13px; width: 240px; }
         .settings-menu.active { display: block; }
-        .settings-label { display: block; margin-top: 12px; margin-bottom: 5px; font-weight: 700; font-size: 0.9em; border-bottom: 1px solid #ddd; padding-bottom: 3px; }
-        .settings-input { width: 100%; padding: 6px; font-family: inherit; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; margin-bottom: 5px; }
         
         .notify-btn { width: 100%; padding: 8px; background: #1e82e6; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 700; margin-top: 10px; font-size: 14px; }
         .notify-btn.granted { background: #4caf50; cursor: default; }
@@ -61,10 +59,6 @@
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
         .epicenter-cross { color: #ff0000; font-size: 45px; font-weight: 700; text-shadow: 0 0 8px #fff; display: flex !important; align-items: center; justify-content: center; animation: blink 1s infinite; }
         
-        .scale-70 { background: #8c0028; color: #fff; } .scale-60 { background: #be0000; color: #fff; } .scale-55 { background: #f03200; color: #fff; }
-        .scale-50 { background: #ff9600; color: #000; } .scale-45 { background: #ffd200; color: #000; } .scale-40 { background: #ffff96; color: #000; }
-        .scale-30 { background: #78e6dc; color: #000; } .scale-20 { background: #1e82e6; color: #fff; } .scale-10 { background: #3c5a82; color: #fff; }
-
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
         .modal-container { background: var(--panel-bg); color: var(--text-main); width: 90%; max-width: 800px; height: 85%; max-height: 800px; border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.5); overflow: hidden; border: 1px solid var(--border-color); }
         .modal-header { background: #4b0082; color: #fff; padding: 15px 20px; font-size: 1.2em; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
@@ -84,9 +78,6 @@
         .result-sub { font-size: 0.85em; opacity: 0.8; }
         .result-scale-badge { padding: 4px 12px; border-radius: 4px; font-weight: 700; font-size: 1.1em; border: 1.5px solid #000; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
 
-        /* =========================================
-           レスポンシブ対応 (モバイル・タブレット)
-           ========================================= */
         @media screen and (max-width: 850px) {
             html, body { overflow-y: auto !important; height: auto !important; min-height: 100vh; }
             body { display: flex; flex-direction: column; align-items: center; padding: 15px; gap: 15px; box-sizing: border-box; }
@@ -152,15 +143,15 @@
 </div>
 
 <div id="legend-panel">
-    <div class="legend-item"><span class="legend-label">震度7</span><div class="legend-icon scale-70">7</div></div>
-    <div class="legend-item"><span class="legend-label">震度6強</span><div class="legend-icon scale-60">6+</div></div>
-    <div class="legend-item"><span class="legend-label">震度6弱</span><div class="legend-icon scale-55">6-</div></div>
-    <div class="legend-item"><span class="legend-label">震度5強</span><div class="legend-icon scale-50">5+</div></div>
-    <div class="legend-item"><span class="legend-label">震度5弱</span><div class="legend-icon scale-45">5-</div></div>
-    <div class="legend-item"><span class="legend-label">震度4</span><div class="legend-icon scale-40">4</div></div>
-    <div class="legend-item"><span class="legend-label">震度3</span><div class="legend-icon scale-30">3</div></div>
-    <div class="legend-item"><span class="legend-label">震度2</span><div class="legend-icon scale-20">2</div></div>
-    <div class="legend-item"><span class="legend-label">震度1</span><div class="legend-icon scale-10">1</div></div>
+    <div class="legend-item"><span class="legend-label">震度7</span><div class="legend-icon" style="background:#8c0028; color:#fff;">7</div></div>
+    <div class="legend-item"><span class="legend-label">震度6強</span><div class="legend-icon" style="background:#be0000; color:#fff;">6+</div></div>
+    <div class="legend-item"><span class="legend-label">震度6弱</span><div class="legend-icon" style="background:#f03200; color:#fff;">6-</div></div>
+    <div class="legend-item"><span class="legend-label">震度5強</span><div class="legend-icon" style="background:#ff9600; color:#000;">5+</div></div>
+    <div class="legend-item"><span class="legend-label">震度5弱</span><div class="legend-icon" style="background:#ffd200; color:#000;">5-</div></div>
+    <div class="legend-item"><span class="legend-label">震度4</span><div class="legend-icon" style="background:#ffff96; color:#000;">4</div></div>
+    <div class="legend-item"><span class="legend-label">震度3</span><div class="legend-icon" style="background:#78e6dc; color:#000;">3</div></div>
+    <div class="legend-item"><span class="legend-label">震度2</span><div class="legend-icon" style="background:#1e82e6; color:#fff;">2</div></div>
+    <div class="legend-item"><span class="legend-label">震度1</span><div class="legend-icon" style="background:#3c5a82; color:#fff;">1</div></div>
     <div class="legend-item"><span class="legend-label">未入電</span><div class="legend-icon" style="background:#555; color:#fff;">?</div></div>
 </div>
 
@@ -209,8 +200,6 @@
 
     const isMobile = window.innerWidth < 850;
     const initialZoom = isMobile ? 4 : 5;
-    
-    // ★ ここに attributionControl: false を追加して右下の文字を消去！
     const map = L.map('map', { zoomControl: false, preferCanvas: true, attributionControl: false }).setView([36.2, 138.2], initialZoom);
     const lightTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
     const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png');
@@ -221,7 +210,7 @@
     let epicenterMarker = null;    
 
     // ==========================================
-    // 自作の超高速Canvas描画エンジン
+    // ★ ズーム追従対応・3倍パディングCanvas ★
     // ==========================================
     const PointCanvasLayer = L.Layer.extend({
         initialize: function (points, isQuickReport) {
@@ -235,7 +224,9 @@
             this._canvas.style.pointerEvents = 'none';
             map.getPane('overlayPane').appendChild(this._canvas);
             
+            // ズーム・パンが「終わった時」に画用紙を新しく用意する
             map.on('moveend zoomend viewreset resize', this._update, this);
+            // ピンチズーム「中」に画用紙をリアルタイムで引き伸ばす
             map.on('zoomanim', this._animateZoom, this);
             
             this._update();
@@ -254,25 +245,39 @@
         _update: function () {
             if (!this._map) return;
             const size = this._map.getSize();
-            const bounds = this._map.getBounds();
             
-            this._topLeftLatLng = bounds.getNorthWest();
-            const topLeft = this._map.latLngToLayerPoint(this._topLeftLatLng);
-
-            L.DomUtil.setPosition(this._canvas, topLeft);
+            // ★ スマホのスクロールで端が切れないよう、画面の3倍の広さの画用紙を用意
+            const padX = size.x;
+            const padY = size.y;
+            const width = size.x + padX * 2;
+            const height = size.y + padY * 2;
+            
+            // 地図の中心から画用紙の「左上」の座標を計算
+            const center = this._map.getCenter();
+            const centerPt = this._map.latLngToLayerPoint(center);
+            const topLeftLayer = L.point(centerPt.x - width / 2, centerPt.y - height / 2);
+            
+            // ズームアニメーション用に左上の緯度経度を記憶
+            this._topLeftLatLng = this._map.layerPointToLatLng(topLeftLayer);
+            
+            // 画用紙を地図の上に配置
+            L.DomUtil.setPosition(this._canvas, topLeftLayer);
+            
+            // ズーム中の引き伸ばし(scale)をリセットして綺麗に描き直す準備
+            this._canvas.style.transform = this._canvas.style.transform.replace(/ scale\([^\)]+\)/, '') + ' scale(1)';
             
             const dpr = window.devicePixelRatio || 1;
-            this._canvas.width = size.x * dpr;
-            this._canvas.height = size.y * dpr;
-            this._canvas.style.width = size.x + 'px';
-            this._canvas.style.height = size.y + 'px';
+            this._canvas.width = width * dpr;
+            this._canvas.height = height * dpr;
+            this._canvas.style.width = width + 'px';
+            this._canvas.style.height = height + 'px';
 
             const ctx = this._canvas.getContext('2d');
             ctx.scale(dpr, dpr);
-            this._draw(topLeft, ctx);
+            this._draw(topLeftLayer, ctx, width, height);
         },
-        _draw: function (topLeft, ctx) {
-            ctx.clearRect(0, 0, parseFloat(this._canvas.style.width), parseFloat(this._canvas.style.height));
+        _draw: function (topLeftLayer, ctx, width, height) {
+            ctx.clearRect(0, 0, width, height);
 
             const colorMap = {
                 "70": {bg: "#8c0028", fg: "#fff"}, "60": {bg: "#be0000", fg: "#fff"}, "55": {bg: "#f03200", fg: "#fff"},
@@ -289,10 +294,12 @@
             for (let i = 0; i < this.points.length; i++) {
                 let p = this.points[i];
                 let layerPt = this._map.latLngToLayerPoint(p.latLng);
-                let cx = layerPt.x - topLeft.x;
-                let cy = layerPt.y - topLeft.y;
+                // 画用紙の左上を(0,0)としたときの相対座標
+                let cx = layerPt.x - topLeftLayer.x;
+                let cy = layerPt.y - topLeftLayer.y;
 
-                if (cx < -30 || cx > parseFloat(this._canvas.style.width) + 30 || cy < -30 || cy > parseFloat(this._canvas.style.height) + 30) continue;
+                // 3倍画用紙の外にはみ出るピンはスキップしてさらに軽くする
+                if (cx < -30 || cx > width + 30 || cy < -30 || cy > height + 30) continue;
 
                 let size = 22; let half = size / 2;
                 let color = colorMap[p.scale] || {bg:"#555", fg:"#fff"};
