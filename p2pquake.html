@@ -44,20 +44,14 @@
         .settings-menu.active { display: block; }
         .settings-label { display: block; margin-top: 12px; margin-bottom: 5px; font-weight: 700; font-size: 0.9em; border-bottom: 1px solid #ddd; padding-bottom: 3px; }
         .settings-input { width: 100%; padding: 6px; font-family: inherit; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; margin-bottom: 5px; }
-        .oauth-btn { width: 100%; padding: 6px; background: #4b0082; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 700; }
         
-        /* 通知ボタン用スタイル */
         .notify-btn { width: 100%; padding: 8px; background: #1e82e6; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 700; margin-top: 10px; font-size: 14px; }
         .notify-btn.granted { background: #4caf50; cursor: default; }
-        .notify-btn.test-btn { background: #ff9800; margin-top: 6px; } /* テストボタンのオレンジ色 */
+        .notify-btn.test-btn { background: #ff9800; margin-top: 6px; }
 
-        .disconnect-btn { width: 100%; padding: 6px; background: #f44336; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 700; margin-top: 5px; }
-        
         .history-panel { position: absolute; bottom: 15px; left: 15px; z-index: 1000; display: flex; gap: 8px; align-items: center; }
         .latest-btn { background: #333; color: #fff; border: none; padding: 0 15px; height: 36px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
         .search-main-btn { background: #4b0082; }
-        
-        #dmdata-status { display: none; position: absolute; bottom: 80px; right: 15px; z-index: 1000; background: rgba(20, 20, 20, 0.85); color: #fff; padding: 6px 15px; border-radius: 20px; font-size: 12px; font-weight: 700; box-shadow: 0 2px 10px rgba(0,0,0,0.3); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.2); }
 
         #legend-panel { position: absolute; bottom: 15px; right: 15px; z-index: 1000; background: var(--panel-bg); padding: 12px 15px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 8px; font-family: 'BIZ UDPGothic', sans-serif; }
         .legend-item { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; font-weight: 700; color: var(--text-main); font-size: 12px; }
@@ -65,14 +59,11 @@
         .legend-icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1.5px solid #000; font-size: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); flex-shrink: 0; }
 
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
-        .epicenter-cross { color: #ff0000; font-size: 70px; font-weight: 700; text-shadow: 0 0 10px #fff; display: flex !important; align-items: center; justify-content: center; animation: blink 1s infinite; }
-        .intensity-base { display: flex !important; align-items: center; justify-content: center; border: 1.5px solid #000 !important; font-weight: 700 !important; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
-        .intensity-circle { border-radius: 50% !important; } .intensity-square { border-radius: 4px !important; }
+        .epicenter-cross { color: #ff0000; font-size: 45px; font-weight: 700; text-shadow: 0 0 8px #fff; display: flex !important; align-items: center; justify-content: center; animation: blink 1s infinite; }
         
         .scale-70 { background: #8c0028; color: #fff; } .scale-60 { background: #be0000; color: #fff; } .scale-55 { background: #f03200; color: #fff; }
         .scale-50 { background: #ff9600; color: #000; } .scale-45 { background: #ffd200; color: #000; } .scale-40 { background: #ffff96; color: #000; }
         .scale-30 { background: #78e6dc; color: #000; } .scale-20 { background: #1e82e6; color: #fff; } .scale-10 { background: #3c5a82; color: #fff; }
-        .leaflet-tooltip { font-family: 'BIZ UDPGothic', sans-serif; font-size: 12px; padding: 6px 10px; border-radius: 4px; }
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
         .modal-container { background: var(--panel-bg); color: var(--text-main); width: 90%; max-width: 800px; height: 85%; max-height: 800px; border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.5); overflow: hidden; border: 1px solid var(--border-color); }
@@ -101,27 +92,21 @@
             body { display: flex; flex-direction: column; align-items: center; padding: 15px; gap: 15px; box-sizing: border-box; }
             body:not(.dark-theme) { background: #e9ecef; }
             .dark-theme body { background: #0a0a0a; }
-
             #map { position: relative !important; width: 100% !important; max-width: 600px; height: 35vh !important; min-height: 250px !important; border-radius: 12px; border: 1px solid var(--border-color); order: 1; z-index: 1; flex-shrink: 0; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-            
             #legend-panel { position: relative !important; bottom: auto !important; right: auto !important; order: 2; width: 100%; max-width: 600px; overflow-x: auto; flex-direction: row; justify-content: flex-start; padding: 12px 15px; box-sizing: border-box; flex-shrink: 0; }
             #legend-panel::-webkit-scrollbar { height: 6px; }
             #legend-panel::-webkit-scrollbar-thumb { background: #aaa; border-radius: 3px; }
             .legend-item { flex-direction: column; gap: 6px; flex-shrink: 0; min-width: 45px; }
             .legend-label { text-align: center; font-size: 10px; white-space: nowrap; }
-
             .history-panel { position: relative !important; bottom: auto !important; left: auto !important; order: 3; width: 100%; max-width: 600px; display: flex; gap: 10px; box-sizing: border-box; flex-shrink: 0; }
             .history-panel button { flex: 1; margin: 0; height: 48px; font-size: 14px; }
-
             .side-container { position: relative !important; top: auto !important; left: auto !important; order: 4; width: 100% !important; max-width: 600px; max-height: none !important; display: flex; flex-direction: column; gap: 15px; box-sizing: border-box; flex-shrink: 0; }
             .points-panel { overflow: visible !important; }
             .points-scroll-area { overflow-y: visible !important; max-height: none !important; padding-bottom: 20px; }
-
             .settings-btn { position: fixed !important; top: 15px !important; z-index: 2000 !important; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
             .settings-btn.ticker-btn { right: 65px !important; }
             .settings-btn:not(.ticker-btn) { right: 15px !important; }
             .settings-menu { position: fixed !important; top: 60px !important; right: 15px !important; z-index: 2000 !important; }
-            #dmdata-status { position: fixed !important; bottom: 15px !important; right: 15px !important; z-index: 2000 !important; }
         }
     </style>
 </head>
@@ -132,25 +117,17 @@
 <button class="settings-btn" onclick="toggleSettings()" title="設定">⚙</button>
 
 <div id="settings-menu" class="settings-menu">
-    <label style="cursor:pointer; font-weight:700;"><input type="checkbox" id="dark-toggle" onchange="applySettings()"> ダークモード</label>
+    <label style="cursor:pointer; font-weight:700; display:block; margin-bottom:12px;">
+        <input type="checkbox" id="dark-toggle" onchange="applySettings()"> ダークモード
+    </label>
     
+    <label style="cursor:pointer; font-weight:700; display:block; margin-bottom:12px; border-bottom:1px solid #ddd; padding-bottom:10px;">
+        <input type="checkbox" id="show-unknown-toggle" onchange="applySettings()"> 未入電（?）を表示
+    </label>
+
     <button id="notify-btn" class="notify-btn" onclick="requestNotification()">🔔 通知を許可する</button>
     <button id="notify-test-btn" class="notify-btn test-btn" onclick="testNotification()" style="display:none;">📲 通知テストを送信</button>
-
-    <div id="future-dmdata-features" style="display:none;">
-        <span class="settings-label">EEW(緊急地震速報) 接続設定</span>
-        <select id="data-source" class="settings-input" onchange="applySettings()">
-            <option value="p2p">P2P地震情報のみ (通常モード)</option>
-            <option value="dmdata">将来のEEW機能を利用する (DMDATA連携)</option>
-        </select>
-        <div id="dmdata-settings" style="display:none; margin-top:10px;">
-            <button class="oauth-btn" onclick="startOAuthFlow()">DMDATAと連携して接続</button>
-            <button class="disconnect-btn" onclick="disconnectDMDATA()">DMDATAを切断する</button>
-        </div>
-    </div>
 </div>
-
-<div id="dmdata-status">EEW待機中 (DMDATA)</div>
 
 <div class="side-container">
     <div id="main-panel" class="info-panel">
@@ -186,6 +163,7 @@
     <div class="legend-item"><span class="legend-label">震度3</span><div class="legend-icon scale-30">3</div></div>
     <div class="legend-item"><span class="legend-label">震度2</span><div class="legend-icon scale-20">2</div></div>
     <div class="legend-item"><span class="legend-label">震度1</span><div class="legend-icon scale-10">1</div></div>
+    <div class="legend-item"><span class="legend-label">未入電</span><div class="legend-icon" style="background:#555; color:#fff;">?</div></div>
 </div>
 
 <div id="search-modal" class="modal-overlay">
@@ -225,140 +203,183 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').then(() => {
-            console.log('Service Worker Registered');
-        });
-    }
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
 
+    // ★ 定数定義
     const scaleMap = { "10": "1", "20": "2", "30": "3", "40": "4", "45": "5弱", "50": "5強", "55": "6弱", "60": "6強", "70": "7" };
     const plotScaleMap = { "10": "1", "20": "2", "30": "3", "40": "4", "45": "5-", "50": "5+", "55": "6-", "60": "6+", "70": "7" };
     const issueTypeMap = { "ScalePrompt": "震度速報", "Destination": "震源に関する情報", "ScaleAndDestination": "震源・震度情報", "DetailScale": "各地の震度情報", "Foreign": "遠地地震情報" };
 
-    const map = L.map('map', { zoomControl: false }).setView([36.2, 138.2], 5);
+    const isMobile = window.innerWidth < 850;
+    const initialZoom = isMobile ? 4 : 5;
+    const map = L.map('map', { zoomControl: false, preferCanvas: true }).setView([36.2, 138.2], initialZoom);
     const lightTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
     const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png');
-    const markerGroup = L.layerGroup().addTo(map);
     
-    let stationMaster = [], currentData = null, isHistoryMode = false;
-    let tickerWindow = null, localWs = null, pollingInterval = null;
-    let stationCache = {}; 
-    let currentRenderTask = 0;
-    
-    // ==========================================
-    // 【通知・PWA 関連システム】
-    // ==========================================
-    function checkNotificationStatus() {
-        const btn = document.getElementById('notify-btn');
-        const testBtn = document.getElementById('notify-test-btn');
-        
-        if (!("Notification" in window)) {
-            btn.style.display = 'none'; 
-            testBtn.style.display = 'none';
-            return;
-        }
-        if (Notification.permission === "granted") {
-            btn.innerText = "🔔 通知許可済み";
-            btn.classList.add('granted');
-            btn.onclick = null;
-            testBtn.style.display = 'block'; // 許可済みの時だけテストボタンを表示
-        } else {
-            testBtn.style.display = 'none';
-        }
-    }
+    let stationMaster = [], currentData = null, isHistoryMode = false, stationCache = {}; 
+    let tickerWindow = null, pollingInterval = null;
+    let currentCanvasLayer = null; 
+    let epicenterMarker = null;    
 
-    function requestNotification() {
-        Notification.requestPermission().then(permission => {
-            checkNotificationStatus();
-            if (permission === "granted") {
-                triggerNotification("設定完了", { body: "地震情報を受信した際にお知らせします。", icon: "icon.png" });
+    // ==========================================
+    // 自作の超高速Canvas描画エンジン
+    // ==========================================
+    const PointCanvasLayer = L.Layer.extend({
+        initialize: function (points, isQuickReport) {
+            this.points = points;
+            this.isQuickReport = isQuickReport;
+            this.points.sort((a, b) => parseInt(a.scale) - parseInt(b.scale));
+        },
+        onAdd: function (map) {
+            this._map = map;
+            this._canvas = L.DomUtil.create('canvas', 'leaflet-zoom-animated');
+            this._canvas.style.pointerEvents = 'none';
+            map.getPane('overlayPane').appendChild(this._canvas);
+            map.on('moveend zoomend viewreset resize', this._update, this);
+            this._update();
+        },
+        onRemove: function (map) {
+            map.getPane('overlayPane').removeChild(this._canvas);
+            map.off('moveend zoomend viewreset resize', this._update, this);
+        },
+        _update: function () {
+            if (!this._map) return;
+            const size = this._map.getSize();
+            const bounds = this._map.getBounds();
+            const topLeft = this._map.latLngToLayerPoint(bounds.getNorthWest());
+
+            L.DomUtil.setPosition(this._canvas, topLeft);
+            
+            const dpr = window.devicePixelRatio || 1;
+            this._canvas.width = size.x * dpr;
+            this._canvas.height = size.y * dpr;
+            this._canvas.style.width = size.x + 'px';
+            this._canvas.style.height = size.y + 'px';
+
+            const ctx = this._canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+            this._draw(topLeft, ctx);
+        },
+        _draw: function (topLeft, ctx) {
+            ctx.clearRect(0, 0, parseFloat(this._canvas.style.width), parseFloat(this._canvas.style.height));
+
+            const colorMap = {
+                "70": {bg: "#8c0028", fg: "#fff"}, "60": {bg: "#be0000", fg: "#fff"}, "55": {bg: "#f03200", fg: "#fff"},
+                "50": {bg: "#ff9600", fg: "#000"}, "45": {bg: "#ffd200", fg: "#000"}, "40": {bg: "#ffff96", fg: "#000"},
+                "30": {bg: "#78e6dc", fg: "#000"}, "20": {bg: "#1e82e6", fg: "#fff"}, "10": {bg: "#3c5a82", fg: "#fff"}
+            };
+
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = "#000";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.font = "bold 11px 'BIZ UDPGothic', sans-serif";
+
+            for (let i = 0; i < this.points.length; i++) {
+                let p = this.points[i];
+                let layerPt = this._map.latLngToLayerPoint(p.latLng);
+                let cx = layerPt.x - topLeft.x;
+                let cy = layerPt.y - topLeft.y;
+
+                if (cx < -30 || cx > parseFloat(this._canvas.style.width) + 30 || cy < -30 || cy > parseFloat(this._canvas.style.height) + 30) continue;
+
+                let size = 22;
+                let half = size / 2;
+                // ★ 未入電（不明な震度）の場合はグレー背景にする
+                let color = colorMap[p.scale] || {bg:"#555", fg:"#fff"};
+
+                ctx.fillStyle = color.bg;
+                ctx.beginPath();
+                if (this.isQuickReport) {
+                    ctx.rect(cx - half, cy - half, size, size); 
+                } else {
+                    ctx.arc(cx, cy, half, 0, 2 * Math.PI); 
+                }
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = color.fg;
+                ctx.fillText(plotScaleMap[p.scale] || "?", cx, cy + 1);
             }
-        });
-    }
-
-    // ★ iOS/PWAでも安定して鳴らすための汎用通知トリガー関数
-    function triggerNotification(title, options) {
-        if (Notification.permission !== "granted") return;
-        
-        if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
-            navigator.serviceWorker.ready.then(registration => {
-                registration.showNotification(title, options);
-            }).catch(() => {
-                new Notification(title, options); // フォールバック
-            });
-        } else {
-            new Notification(title, options);
         }
-    }
+    });
 
-    // テスト通知送信ボタンの処理
-    function testNotification() {
-        triggerNotification("📲 テスト通知", {
-            body: "地震モニターからの通知が正常に届いています！\n(※これはテストメッセージです)",
-            icon: "icon.png"
-        });
-    }
+    let mapTooltip = L.tooltip({direction: 'top', offset: [0, -10], opacity: 0.95});
+    let hoveredPoint = null;
 
-    // 地震データが来た時の通知処理
+    map.on('mousemove', function(e) {
+        if (!currentCanvasLayer || !currentCanvasLayer.points || currentCanvasLayer.points.length === 0) return;
+        let layerPt = e.layerPoint;
+        let minDist = 15; 
+        let closest = null;
+
+        for (let i = currentCanvasLayer.points.length - 1; i >= 0; i--) {
+            let p = currentCanvasLayer.points[i];
+            let pt = map.latLngToLayerPoint(p.latLng);
+            let d = Math.sqrt(Math.pow(pt.x - layerPt.x, 2) + Math.pow(pt.y - layerPt.y, 2));
+            if (d < minDist) { minDist = d; closest = p; break; }
+        }
+
+        if (closest !== hoveredPoint) {
+            hoveredPoint = closest;
+            if (closest) {
+                // ★ ツールチップで未入電を分かりやすく表示
+                const sStr = scaleMap[closest.scale] ? `震度${scaleMap[closest.scale]}` : "未入電";
+                mapTooltip.setLatLng(closest.latLng)
+                          .setContent(`<div style="font-family:'BIZ UDPGothic'; text-align:center;"><b>【${sStr}】</b><br>${closest.addr}</div>`)
+                          .addTo(map);
+            } else {
+                mapTooltip.removeFrom(map);
+            }
+        }
+    });
+    // ==========================================
+
+
+    function checkNotificationStatus() {
+        const btn = document.getElementById('notify-btn'); const testBtn = document.getElementById('notify-test-btn');
+        if (!("Notification" in window)) { btn.style.display = 'none'; testBtn.style.display = 'none'; return; }
+        if (Notification.permission === "granted") { btn.innerText = "🔔 通知許可済み"; btn.classList.add('granted'); btn.onclick = null; testBtn.style.display = 'block'; } else { testBtn.style.display = 'none'; }
+    }
+    function requestNotification() { Notification.requestPermission().then(p => { checkNotificationStatus(); if (p === "granted") triggerNotification("設定完了", { body: "地震情報を受信した際にお知らせします。", icon: "icon.png" }); }); }
+    function triggerNotification(t, o) { if (Notification.permission !== "granted") return; if ('serviceWorker' in navigator && navigator.serviceWorker.ready) { navigator.serviceWorker.ready.then(r => { r.showNotification(t, o); }).catch(() => { new Notification(t, o); }); } else { new Notification(t, o); } }
+    function testNotification() { triggerNotification("📲 テスト通知", { body: "地震モニターからの通知が正常に届いています！", icon: "icon.png" }); }
     function sendEarthquakeNotification(data) {
         if (Notification.permission !== "granted") return;
-        
         const e = data.earthquake || {}, h = e.hypocenter || {}, issue = data.issue || {};
-        const typeStr = issueTypeMap[issue.type] || "地震情報";
-        const scaleStr = (e.maxScale !== undefined && e.maxScale !== -1) ? (scaleMap[e.maxScale] || '?') : '調査中';
-        const hypName = h.name ? h.name : '調査中';
-        
-        let title = `【${typeStr}】最大震度${scaleStr}`;
-        let bodyText = `震源地: ${hypName}\n発生時刻: ${e.time || '不明'}`;
-        
-        triggerNotification(title, { body: bodyText, icon: "icon.png" });
+        triggerNotification(`【${issueTypeMap[issue.type] || "地震情報"}】最大震度${(e.maxScale !== undefined && e.maxScale !== -1) ? (scaleMap[e.maxScale] || '?') : '調査中'}`, { body: `震源地: ${h.name ? h.name : '調査中'}\n発生時刻: ${e.time || '不明'}`, icon: "icon.png" });
     }
 
-    // ==========================================
-    // UI・マップ描画ロジック
-    // ==========================================
     function getCityName(addr) {
         const exceptions = ['四日市市', '廿日市市', '市川市', '市原市', '野々市市', '大町市', '八日市場市'];
         for (const ex of exceptions) if (addr.startsWith(ex)) return ex;
-        let m = addr.match(/^(.+?郡.+?[町村])/); if (m) return m[1];
-        m = addr.match(/^(.+?[市区町村])/); if (m) return m[1];
-        return addr; 
+        let m = addr.match(/^(.+?郡.+?[町村])/); if (m) return m[1]; m = addr.match(/^(.+?[市区町村])/); if (m) return m[1]; return addr; 
     }
 
     function toggleSettings() { document.getElementById('settings-menu').classList.toggle('active'); }
-    function startOAuthFlow() { window.location.href = '/auth/login'; }
-    function disconnectDMDATA() { document.getElementById('data-source').value = 'p2p'; applySettings(); document.getElementById('settings-menu').classList.remove('active'); }
-    function checkUrlParams() { if (window.location.search.includes('dmdata=connected')) { window.history.replaceState({}, document.title, "/"); } }
-
+    
+    // ★ 設定の保存と即時反映
     function applySettings() {
         const isDark = document.getElementById('dark-toggle').checked;
-        localStorage.setItem('eq_settings', JSON.stringify({ isDark, source: 'p2p' }));
+        const showUnknown = document.getElementById('show-unknown-toggle').checked;
+        
+        localStorage.setItem('eq_settings', JSON.stringify({ isDark, source: 'p2p', showUnknown }));
         document.body.classList.toggle('dark-theme', isDark);
-        if (isDark) { map.removeLayer(lightTiles); darkTiles.addTo(map); }
+        
+        if (isDark) { map.removeLayer(lightTiles); darkTiles.addTo(map); } 
         else { map.removeLayer(darkTiles); lightTiles.addTo(map); }
+        
+        // 設定が変わったら、即座にマップを再描画してピンの表示/非表示を切り替える
+        if (currentData) updateDisplay(currentData, false);
+        
         if (!pollingInterval) { fetchLatestP2P(); pollingInterval = setInterval(fetchLatestP2P, 3000); }
     }
 
     function loadSettings() {
-        const saved = JSON.parse(localStorage.getItem('eq_settings') || '{"isDark":false, "source":"p2p"}');
+        const saved = JSON.parse(localStorage.getItem('eq_settings') || '{"isDark":false, "source":"p2p", "showUnknown":true}');
         document.getElementById('dark-toggle').checked = saved.isDark;
-        document.getElementById('data-source').value = 'p2p';
+        document.getElementById('show-unknown-toggle').checked = saved.showUnknown !== false; // デフォルトtrue
         applySettings();
-    }
-
-    function connectToLocalNode() {
-        if (localWs) return;
-        localWs = new WebSocket(`ws://${window.location.host}`);
-        const statusEl = document.getElementById('dmdata-status');
-        localWs.onopen = () => console.log("Node.js サーバーと接続完了");
-        localWs.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data.type === "status") {
-                if (data.status === "connected") { statusEl.innerHTML = 'EEW機能: 🟢 接続済 (待機中)'; statusEl.style.color = '#4caf50'; }
-                else { statusEl.innerHTML = 'EEW機能: 🔴 切断'; statusEl.style.color = '#f44336'; }
-            }
-        };
-        localWs.onclose = () => { localWs = null; if (document.getElementById('data-source').value === 'dmdata') setTimeout(connectToLocalNode, 3000); };
     }
 
     async function fetchLatestP2P() {
@@ -366,67 +387,46 @@
         try {
             const res = await fetch("https://api.p2pquake.net/v2/history?codes=551&limit=1");
             const data = await res.json();
-            
             if (data[0] && data[0].earthquake && data[0].issue && (!currentData || data[0].id !== currentData.id)) {
                 if (currentData) sendEarthquakeNotification(data[0]); 
-                updateDisplayAsync(data[0], true);
+                updateDisplay(data[0], true);
             }
         } catch (e) {}
     }
 
-    function showLatest() {
-        isHistoryMode = false;
-        currentData = null; 
-        fetchLatestP2P();
-    }
-
-    let searchCache = []; 
+    function showLatest() { isHistoryMode = false; currentData = null; fetchLatestP2P(); }
     function openSearchModal() { document.getElementById('search-modal').style.display = 'flex'; if(document.getElementById('search-results-list').innerHTML.trim() === '') executeSearch(); }
     function closeSearchModal() { document.getElementById('search-modal').style.display = 'none'; }
 
     async function executeSearch() {
         const resultsArea = document.getElementById('search-results-list');
         resultsArea.innerHTML = '<div style="padding:30px; text-align:center; font-weight:700;">サーバーから取得中...</div>';
-        
-        const since = document.getElementById('s-since').value.replace(/-/g, '');
-        const until = document.getElementById('s-until').value.replace(/-/g, '');
-        const minScale = document.getElementById('s-min-scale').value;
-        const issueType = document.getElementById('s-issue').value;
-        const minMag = parseFloat(document.getElementById('s-min-mag').value) || 0;
-
+        const since = document.getElementById('s-since').value.replace(/-/g, ''); const until = document.getElementById('s-until').value.replace(/-/g, '');
+        const minScale = document.getElementById('s-min-scale').value; const issueType = document.getElementById('s-issue').value; const minMag = parseFloat(document.getElementById('s-min-mag').value) || 0;
         let url = 'https://api.p2pquake.net/v2/jma/quake?limit=100';
-        if (since) url += `&since_date=${since}`;
-        if (until) url += `&until_date=${until}`;
-        if (minScale) url += `&min_scale=${minScale}`;
-        if (issueType) url += `&issue_type=${issueType}`;
-
+        if (since) url += `&since_date=${since}`; if (until) url += `&until_date=${until}`; if (minScale) url += `&min_scale=${minScale}`; 
         try {
-            const res = await fetch(url);
+            const res = await fetch(url); if(!res.ok) throw new Error("APIレスポンスエラー");
             let data = await res.json();
             data = data.filter(item => item.earthquake && item.issue);
             if (minMag > 0) data = data.filter(item => { const mag = item.earthquake.hypocenter?.magnitude; return (mag !== undefined && mag !== -1 && mag >= minMag); });
+            if (issueType) data = data.filter(item => item.issue.type === issueType);
             renderSearchResults(data);
-        } catch (e) {
-            resultsArea.innerHTML = '<div style="padding:30px; text-align:center; color:red; font-weight:700;">取得エラーが発生しました。</div>';
-        }
+        } catch (e) { resultsArea.innerHTML = '<div style="padding:30px; text-align:center; color:red; font-weight:700;">取得エラーが発生しました。時間を空けてお試しください。</div>'; }
     }
 
     function renderSearchResults(data) {
         searchCache = data;
         const resultsArea = document.getElementById('search-results-list');
         if (data.length === 0) { resultsArea.innerHTML = '<div style="padding:30px; text-align:center; font-weight:700;">該当する地震データが見つかりませんでした。</div>'; return; }
-        
         let html = '';
         data.forEach(eq => {
             const e = eq.earthquake || {}, h = e.hypocenter || {}, issue = eq.issue || {};
-            const typeStr = issueTypeMap[issue.type] || "地震情報";
-            const plotScaleStr = (e.maxScale !== undefined && e.maxScale !== -1) ? (plotScaleMap[e.maxScale] || '?') : '-';
-            const magStr = (h.magnitude !== undefined && h.magnitude !== -1) ? `M${h.magnitude}` : '調査中';
-            const hypName = h.name ? h.name : '震源調査中';
-            const tsMsg = !(e.domesticTsunami === "None" || e.domesticTsunami === "NonEffective" || e.domesticTsunami === "Unknown" || e.domesticTsunami === undefined) ? "<span style='color:red'>津波情報あり</span>" : "津波の心配なし";
-            let badgeClass = `scale-${e.maxScale}`;
-            if (e.maxScale === undefined || e.maxScale === -1) badgeClass = 'scale-10';
-
+            const typeStr = issueTypeMap[issue.type] || "地震情報"; const plotScaleStr = (e.maxScale !== undefined && e.maxScale !== -1) ? (plotScaleMap[e.maxScale] || '?') : '-';
+            const magStr = (h.magnitude !== undefined && h.magnitude !== -1) ? `M${h.magnitude}` : '調査中'; const hypName = h.name ? h.name : '震源調査中';
+            const ts = e.domesticTsunami; let tsMsg = "";
+            if (ts === "Unknown" || ts === "Checking" || ts === undefined) tsMsg = "津波調査中"; else if (ts === "None" || ts === "NonEffective") tsMsg = "津波の心配なし"; else tsMsg = "<span style='color:red'>津波情報あり</span>";
+            let badgeClass = `scale-${e.maxScale}`; if (e.maxScale === undefined || e.maxScale === -1) badgeClass = 'scale-10';
             html += `<div class="result-item" onclick="selectHistoryItem('${eq.id}')"><div><div class="result-main">【${typeStr}】${hypName} (${magStr})</div><div class="result-sub">発生：${e.time || '不明'} ｜ ${tsMsg}</div></div><div class="result-scale-badge ${badgeClass}">震度 ${plotScaleStr}</div></div>`;
         });
         resultsArea.innerHTML = html;
@@ -434,18 +434,14 @@
 
     function selectHistoryItem(id) {
         const d = searchCache.find(item => item.id === id);
-        if (d) { isHistoryMode = true; updateDisplayAsync(d, true); closeSearchModal(); }
+        if (d) { isHistoryMode = true; updateDisplay(d, true); closeSearchModal(); }
     }
 
-    async function updateDisplayAsync(data, shouldFit) {
-        currentRenderTask++;
-        const renderId = currentRenderTask;
-        
+    // ★ 描画処理：未入電フィルタリング対応
+    function updateDisplay(data, shouldFit) {
         currentData = data;
-        const e = data.earthquake || {}, h = e.hypocenter || {}, pts = data.points || [], issue = data.issue || {}, bounds = [];
-        const isQuickReport = issue.type === "ScalePrompt";
-        const iconShapeClass = isQuickReport ? "intensity-square" : "intensity-circle";
-
+        const e = data.earthquake || {}, h = e.hypocenter || {}, pts = data.points || [], issue = data.issue || {};
+        
         document.getElementById('info-title-bar').innerText = issueTypeMap[issue.type] || "地震情報";
         document.getElementById('eq-time-full').innerText = (e.time || '----/--/-- --:--') + ' 頃発生';
         document.getElementById('max-scale').innerText = (e.maxScale !== undefined && e.maxScale !== -1) ? (scaleMap[e.maxScale] || '?') : '調査中';
@@ -454,27 +450,57 @@
         document.getElementById('magnitude').innerText = (h.magnitude === undefined || h.magnitude === -1) ? '調査中' : `M${h.magnitude}`;
         
         const tsMsg = document.getElementById('tsunami-msg');
-        if (e.domesticTsunami === "Unknown" || e.domesticTsunami === undefined) { tsMsg.innerText = "津波の有無は現在調査中です。"; tsMsg.className = "tsunami-status tsunami-none"; } 
-        else if (!(e.domesticTsunami === "None" || e.domesticTsunami === "NonEffective")) { tsMsg.innerText = "この地震によって津波情報が発表されています。"; tsMsg.className = "tsunami-status tsunami-active"; } 
-        else { tsMsg.innerText = "この地震による津波の心配はありません。"; tsMsg.className = "tsunami-status tsunami-none"; }
+        const ts = e.domesticTsunami;
+        if (ts === "Unknown" || ts === "Checking" || ts === undefined) { tsMsg.innerText = "津波の有無は現在調査中です。"; tsMsg.className = "tsunami-status tsunami-none"; } 
+        else if (ts === "None" || ts === "NonEffective") { tsMsg.innerText = "この地震による津波の心配はありません。"; tsMsg.className = "tsunami-status tsunami-none"; } 
+        else { tsMsg.innerText = "この地震によって津波情報が発表されています。"; tsMsg.className = "tsunami-status tsunami-active"; }
 
-        markerGroup.clearLayers();
+        if (currentCanvasLayer) { map.removeLayer(currentCanvasLayer); currentCanvasLayer = null; }
+        if (epicenterMarker) { map.removeLayer(epicenterMarker); epicenterMarker = null; }
+        mapTooltip.removeFrom(map);
+        
         const content = document.getElementById('points-content');
         
-        if (pts.length === 0) {
-            content.innerHTML = '<div style="padding: 10px; color: #666;">詳細な観測データは現在入電待ちです...</div>';
+        if (pts.length === 0) { 
+            content.innerHTML = '<div style="padding: 10px; color: #666;">詳細な観測データは現在入電待ちです...</div>'; 
         } else {
-            content.innerHTML = `<div style="padding: 15px; font-weight:700; color: #4b0082;">📡 ${pts.length}件の観測データを展開中...</div>`;
-            
             const grouped = {};
+            const parsedCanvasPoints = [];
+            const bounds = [];
+            
+            // ★ 設定から「未入電を表示するかどうか」を取得
+            const showUnknown = document.getElementById('show-unknown-toggle').checked;
+
             pts.forEach(pt => {
-                const s = String(pt.scale);
+                const s = String(pt.scale); 
+                const isUnknownScale = !scaleMap[s]; // 10〜70の正規の震度以外は「未入電」と判定
+                
+                // ★ 未入電を非表示に設定している場合はスキップして処理しない
+                if (isUnknownScale && !showUnknown) return;
+                
+                // リスト上で未入電だけを別枠でまとめるためのキー
+                const groupKey = isUnknownScale ? "unknown" : s;
                 const pref = pt.pref || (pt.addr.match(/^(.+?[都道府県])/)?.[1]) || "不明";
-                if (!grouped[s]) grouped[s] = {};
-                if (!grouped[s][pref]) grouped[s][pref] = new Set();
-                grouped[s][pref].add(getCityName(pt.addr));
+                
+                if (!grouped[groupKey]) grouped[groupKey] = {}; 
+                if (!grouped[groupKey][pref]) grouped[groupKey][pref] = new Set();
+                grouped[groupKey][pref].add(getCityName(pt.addr));
+
+                let st = stationCache[pt.addr];
+                if (st === undefined) {
+                    st = stationMaster.find(m => pt.addr.includes(m.name));
+                    if (!st && issue.type === "ScalePrompt") st = stationMaster.find(m => (m.region && m.region === pt.addr) || (m.pref && pt.addr.startsWith(m.pref)));
+                    stationCache[pt.addr] = st || null;
+                }
+                if (st) {
+                    const lat = parseFloat(st.lat || st.latitude);
+                    const lng = parseFloat(st.lng || st.lon || st.longitude);
+                    bounds.push([lat, lng]);
+                    parsedCanvasPoints.push({ scale: pt.scale, addr: pt.addr, latLng: L.latLng(lat, lng) });
+                }
             });
 
+            // 左サイドバーのリスト作成
             let listHtml = '';
             [70, 60, 55, 50, 45, 40, 30, 20, 10].forEach(s => {
                 if (grouped[s]) {
@@ -482,52 +508,45 @@
                     for (const pref in grouped[s]) listHtml += `<div class="pref-block"><div class="pref-name">【${pref}】</div><div class="list-points">${Array.from(grouped[s][pref]).join('、')}</div></div>`;
                 }
             });
+            
+            // ★ リストの一番下に「未入電地域」ブロックを追加
+            if (grouped["unknown"]) {
+                listHtml += `<div><div class="list-group-header" style="background:#555; color:#fff;">未入電地域</div></div>`;
+                for (const pref in grouped["unknown"]) {
+                    listHtml += `<div class="pref-block"><div class="pref-name">【${pref}】</div><div class="list-points">${Array.from(grouped["unknown"][pref]).join('、')}</div></div>`;
+                }
+            }
             content.innerHTML = listHtml;
 
-            const chunkSize = 50; 
-            for (let i = 0; i < pts.length; i += chunkSize) {
-                if (currentRenderTask !== renderId) return;
-
-                const chunk = pts.slice(i, i + chunkSize);
-                chunk.forEach(pt => {
-                    const s = String(pt.scale);
-                    let st = stationCache[pt.addr];
-                    if (st === undefined) {
-                        st = stationMaster.find(m => pt.addr.includes(m.name));
-                        if (!st && isQuickReport) st = stationMaster.find(m => (m.region && m.region === pt.addr) || (m.pref && pt.addr.startsWith(m.pref)));
-                        stationCache[pt.addr] = st || null;
-                    }
-
-                    if (st) {
-                        const pos = [parseFloat(st.lat || st.latitude), parseFloat(st.lng || st.lon || st.longitude)];
-                        bounds.push(pos);
-                        L.marker(pos, { icon: L.divIcon({ className: `intensity-base ${iconShapeClass} scale-${pt.scale}`, html: plotScaleMap[s], iconSize: [26, 26] }), zIndexOffset: pt.scale * 10 }).addTo(markerGroup).bindTooltip(`<b>【震度${scaleMap[s]}】</b><br>${pt.addr}`, { sticky: true });
-                    }
-                });
-                await new Promise(resolve => setTimeout(resolve, 0));
+            // Canvasレイヤーを一瞬で地図に貼り付け
+            if (parsedCanvasPoints.length > 0) {
+                currentCanvasLayer = new PointCanvasLayer(parsedCanvasPoints, issue.type === "ScalePrompt");
+                map.addLayer(currentCanvasLayer);
             }
-        }
 
-        if (currentRenderTask === renderId) {
             const isValidEpicenter = h.latitude !== undefined && h.latitude !== -1 && h.latitude !== 200 && h.name;
             if (isValidEpicenter) {
                 const hPos = [h.latitude, h.longitude];
                 bounds.push(hPos);
-                L.marker(hPos, { icon: L.divIcon({ className: 'epicenter-cross', html: '×', iconSize: [80, 80] }), zIndexOffset: 1000 }).addTo(markerGroup);
+                epicenterMarker = L.marker(hPos, { icon: L.divIcon({ className: 'epicenter-cross', html: '×', iconSize: [50, 50] }), zIndexOffset: 1000 }).addTo(map);
             }
-            if (shouldFit && bounds.length > 0) map.fitBounds(bounds, { padding: [80, 80], maxZoom: 8 });
-            updateTickerIfOpen(data);
+
+            if (shouldFit && bounds.length > 0) {
+                const fitPadding = window.innerWidth < 850 ? [30, 30] : [80, 80];
+                map.fitBounds(bounds, { padding: fitPadding, maxZoom: 8 });
+            }
         }
+        updateTickerIfOpen(data);
     }
 
     function getTickerPayload(data) {
         if (!data) return { header: "受信待機中...", queue: [{scale: "【待機】", text: "データを読み込んでいます"}] };
         const e = data.earthquake || {}, h = e.hypocenter || {}, issue = data.issue || {};
         const typeStr = issueTypeMap[issue.type] || "地震情報";
-        const tsMsg = !(e.domesticTsunami === "None" || e.domesticTsunami === "NonEffective" || e.domesticTsunami === "Unknown" || e.domesticTsunami === undefined) ? "<span style='color:#ff4444'>津波情報が発表されています</span>" : ((e.domesticTsunami === "Unknown" || e.domesticTsunami === undefined) ? "津波の有無は調査中" : "津波の心配はありません");
+        const ts = e.domesticTsunami; let tsMsg = "";
+        if (ts === "Unknown" || ts === "Checking" || ts === undefined) tsMsg = "津波の有無は調査中"; else if (ts === "None" || ts === "NonEffective") tsMsg = "津波の心配はありません"; else tsMsg = "<span style='color:#ff4444'>津波情報が発表されています</span>";
         const scaleStr = (e.maxScale !== undefined && e.maxScale !== -1) ? (scaleMap[e.maxScale] || '?') : '調査中';
-        const hypName = h.name ? h.name : '調査中';
-        const depthStr = (h.depth === undefined || h.depth === -1) ? '調査中' : (h.depth === 0 ? "ごく浅い" : `約${h.depth}km`);
+        const hypName = h.name ? h.name : '調査中'; const depthStr = (h.depth === undefined || h.depth === -1) ? '調査中' : (h.depth === 0 ? "ごく浅い" : `約${h.depth}km`);
         const magStr = (h.magnitude === undefined || h.magnitude === -1) ? '調査中' : `M${h.magnitude}`;
         const header = `【${typeStr}】発生時刻：${e.time || '調査中'} / 最大震度：${scaleStr} / 震源地：${hypName} / マグニチュード：${magStr} / 深さ：${depthStr} / ${tsMsg}`;
         
@@ -535,88 +554,46 @@
         if (data.points && data.points.length > 0) {
             const grouped = {};
             data.points.forEach(pt => {
-                const s = String(pt.scale);
-                const pref = pt.pref || (pt.addr.match(/^(.+?[都道府県])/)?.[1]) || "不明";
-                if (!grouped[s]) grouped[s] = {};
-                if (!grouped[s][pref]) grouped[s][pref] = new Set();
-                grouped[s][pref].add(getCityName(pt.addr));
+                const s = String(pt.scale); const pref = pt.pref || (pt.addr.match(/^(.+?[都道府県])/)?.[1]) || "不明";
+                if (!grouped[s]) grouped[s] = {}; if (!grouped[s][pref]) grouped[s][pref] = new Set(); grouped[s][pref].add(getCityName(pt.addr));
             });
             [70, 60, 55, 50, 45, 40, 30, 20, 10].forEach(s => {
-                if (grouped[s]) {
-                    let text = "";
-                    for (const pref in grouped[s]) text += `【${pref}】${Array.from(grouped[s][pref]).join('、')}　　`;
-                    queue.push({ scale: `【震度${scaleMap[s]}】`, text: text });
-                }
+                if (grouped[s]) { let text = ""; for (const pref in grouped[s]) text += `【${pref}】${Array.from(grouped[s][pref]).join('、')}　　`; queue.push({ scale: `【震度${scaleMap[s]}】`, text: text }); }
             });
         }
-        if (queue.length === 0) queue.push({ scale: "【情報】", text: "詳細な観測データはまだ入電していません" });
-        return { header, queue };
+        if (queue.length === 0) queue.push({ scale: "【情報】", text: "詳細な観測データはまだ入電していません" }); return { header, queue };
     }
 
     function openTicker() {
         if (tickerWindow && !tickerWindow.closed) { tickerWindow.focus(); return; }
         tickerWindow = window.open('', 'EqTicker', 'width=1000,height=120,top=0,left=0');
-        const payload = getTickerPayload(currentData);
-        const sOpen = '<sc' + 'ript>'; const sClose = '</sc' + 'ript>';
+        const payload = getTickerPayload(currentData); const sOpen = '<sc' + 'ript>'; const sClose = '</sc' + 'ript>';
         const tickerHTML = `
             <!DOCTYPE html>
             <html lang="ja">
-            <head>
-                <meta charset="UTF-8">
-                <style>
-                    body { margin: 0; background: #000; color: #fff; overflow: hidden; font-family: 'BIZ UDPGothic', sans-serif; display: flex; flex-direction: column; height: 100vh; }
-                    #t-header { background: #4b0082; padding: 12px 20px; font-size: 20px; font-weight: 700; border-bottom: 2px solid #555; white-space: nowrap; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; }
-                    #ticker-area { display: flex; flex-grow: 1; align-items: center; background: #111; font-size: 28px; font-weight: 700; overflow: hidden; }
-                    #scale-badge { background: #222; color: #ffeb3b; padding: 0 15px; height: 100%; display: flex; align-items: center; white-space: nowrap; z-index: 10; box-shadow: 2px 0 10px rgba(0,0,0,0.8); }
-                    .marquee-wrap { flex-grow: 1; overflow: hidden; white-space: nowrap; position: relative; height: 100%; display: flex; align-items: center; }
-                    #marquee-text { display: inline-block; padding-left: 100%; color: #fff; }
-                    @keyframes scroll { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }
-                </style>
-            </head>
-            <body>
-                <div id="t-header">${payload.header}</div>
-                <div id="ticker-area"><div id="scale-badge"></div><div class="marquee-wrap"><div id="marquee-text"></div></div></div>
+            <head><meta charset="UTF-8"><style>body { margin: 0; background: #000; color: #fff; overflow: hidden; font-family: 'BIZ UDPGothic', sans-serif; display: flex; flex-direction: column; height: 100vh; } #t-header { background: #4b0082; padding: 12px 20px; font-size: 20px; font-weight: 700; border-bottom: 2px solid #555; white-space: nowrap; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; } #ticker-area { display: flex; flex-grow: 1; align-items: center; background: #111; font-size: 28px; font-weight: 700; overflow: hidden; } #scale-badge { background: #222; color: #ffeb3b; padding: 0 15px; height: 100%; display: flex; align-items: center; white-space: nowrap; z-index: 10; box-shadow: 2px 0 10px rgba(0,0,0,0.8); } .marquee-wrap { flex-grow: 1; overflow: hidden; white-space: nowrap; position: relative; height: 100%; display: flex; align-items: center; } #marquee-text { display: inline-block; padding-left: 100%; color: #fff; } @keyframes scroll { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }</style></head>
+            <body><div id="t-header">${payload.header}</div><div id="ticker-area"><div id="scale-badge"></div><div class="marquee-wrap"><div id="marquee-text"></div></div></div>
                 ${sOpen}
-                    let queue = ${JSON.stringify(payload.queue)}; let currentIndex = 0;
-                    const marqueeEl = document.getElementById('marquee-text'); const badgeEl = document.getElementById('scale-badge'); const headerEl = document.getElementById('t-header');
-                    function playNext() {
-                        if (!queue || queue.length === 0) return;
-                        const item = queue[currentIndex];
-                        badgeEl.innerHTML = item.scale + '<span style="color:#aaa; margin-left:10px;">｜</span>';
-                        marqueeEl.innerText = item.text;
-                        const duration = Math.max(8, item.text.length * 0.15 + 5);
-                        marqueeEl.style.animation = 'none'; void marqueeEl.offsetWidth; 
-                        marqueeEl.style.animation = 'scroll ' + duration + 's linear 1 forwards';
-                    }
-                    marqueeEl.addEventListener('animationend', () => { currentIndex = (currentIndex + 1) % queue.length; playNext(); });
-                    window.updateData = function(newHeader, newQueue) { headerEl.innerHTML = newHeader; queue = newQueue; currentIndex = 0; playNext(); };
-                    playNext();
+                    let queue = ${JSON.stringify(payload.queue)}; let currentIndex = 0; const marqueeEl = document.getElementById('marquee-text'); const badgeEl = document.getElementById('scale-badge'); const headerEl = document.getElementById('t-header');
+                    function playNext() { if (!queue || queue.length === 0) return; const item = queue[currentIndex]; badgeEl.innerHTML = item.scale + '<span style="color:#aaa; margin-left:10px;">｜</span>'; marqueeEl.innerText = item.text; const duration = Math.max(8, item.text.length * 0.15 + 5); marqueeEl.style.animation = 'none'; void marqueeEl.offsetWidth; marqueeEl.style.animation = 'scroll ' + duration + 's linear 1 forwards'; }
+                    marqueeEl.addEventListener('animationend', () => { currentIndex = (currentIndex + 1) % queue.length; playNext(); }); window.updateData = function(newHeader, newQueue) { headerEl.innerHTML = newHeader; queue = newQueue; currentIndex = 0; playNext(); }; playNext();
                 ${sClose}
-            </body>
-            </html>
-        `;
+            </body></html>`;
         tickerWindow.document.open(); tickerWindow.document.write(tickerHTML); tickerWindow.document.close();
     }
 
-    function updateTickerIfOpen(data) {
-        if (tickerWindow && !tickerWindow.closed && tickerWindow.updateData) {
-            const payload = getTickerPayload(data);
-            tickerWindow.updateData(payload.header, payload.queue);
-        }
-    }
+    function updateTickerIfOpen(data) { if (tickerWindow && !tickerWindow.closed && tickerWindow.updateData) { const payload = getTickerPayload(data); tickerWindow.updateData(payload.header, payload.queue); } }
 
     window.addEventListener('resize', () => { if (map) map.invalidateSize(); });
 
     async function init() {
         checkNotificationStatus(); 
-        checkUrlParams();
-        try {
-            const res = await fetch("https://potato1115.github.io/github.io/kansokuchiten.json");
-            stationMaster = await res.json();
+        try { 
+            const res = await fetch("https://potato1115.github.io/github.io/kansokuchiten.json"); 
+            stationMaster = await res.json(); 
         } catch (e) { setTimeout(init, 5000); return; }
         loadSettings();
     }
-
     init();
 </script>
 </body>
