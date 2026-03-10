@@ -1,42 +1,121 @@
-self.addEventListener('install', (e) => {
-    self.skipWaiting();
+const express = require('express');
+const webpush = require('web-push');
+const cors = require('cors');
+const fetch = require('node-fetch');
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// ==========================================
+// 1. VAPIDキーの設定（起動時に自動生成）
+// ==========================================
+const vapidKeys = webpush.generateVAPIDKeys();
+webpush.setVapidDetails(
+    'mailto:your-email@example.com',
+    vapidKeys.publicKey,
+    vapidKeys.privateKey
+);
+
+console.log('★フロントエンド設定用 PublicKey:', vapidKeys.publicKey);
+
+// ==========================================
+// 2. 購読情報の保存とAPIエンドポイント
+// ==========================================
+let subscriptions = [];
+
+app.get('/vapidPublicKey', (req, res) => {
+    res.send(vapidKeys.publicKey);
 });
 
-self.addEventListener('activate', (e) => {
-    e.waitUntil(self.clients.claim());
+app.post('/subscribe', (req, res) => {
+    const subscription = req.body;
+    const exists = subscriptions.find(sub => sub.endpoint === subscription.endpoint);
+    if (!exists) subscriptions.push(subscription);
+    res.status(201).json({ message: '登録完了' });
+    console.log(`📱 新規端末が通知登録しました（現在: ${subscriptions.length}台）`);
 });
 
-// ★ サーバーからプッシュ通知を受信したときの処理
-self.addEventListener('push', (e) => {
-    if (e.data) {
-        const data = e.data.json();
-        const options = {
-            body: data.body,
-            icon: 'icon.png',
-            badge: 'icon.png', // Android等用のステータスバーアイコン
-            vibrate: [200, 100, 200, 100, 200], // バイブレーション
-            data: { url: '/' } // 通知をタップした時に開くURL
-        };
+// ★ PCからの遠隔テスト用エンドポイント ★
+app.post('/test-push', (req, res) => {
+    console.log("🚨 テスト通知の遠隔リクエストを受信しました");
+    const payload = {
+        title: "📲 遠隔テスト通知",
+        body: "PCからの遠隔テスト送信が正常にスマホへ届きました！\n（プッシュシステムは完璧に稼働しています）"
+    };
+    subscriptions.forEach(sub => {
+        webpush.sendNotification(sub, JSON.stringify(payload))
+            .catch(err => console.error("通知送信エラー:", err));
+    });
+    res.status(200).json({ message: "テスト通知を全端末に送信しました" });
+});
 
-        // 通知をスマホの画面に表示！
-        e.waitUntil(self.registration.showNotification(data.title, options));
+// ==========================================
+// 3. 地震情報フォーマット生成
+// ==========================================
+const scaleMap = { "10": "1", "20": "2", "30": "3", "40": "4", "45": "5弱", "50": "5強", "55": "6弱", "60": "6強", "70": "7" };
+const issueTypeMap = { "ScalePrompt": "震度速報", "Destination": "震源に関する情報", "ScaleAndDestination": "震源・震度情報", "DetailScale": "各地の震度情報", "Foreign": "遠地地震情報" };
+
+function createPushPayload(data) {
+    const e = data.earthquake || {}; const h = e.hypocenter || {}; const issue = data.issue || {}; const pts = data.points || [];
+    const typeStr = issueTypeMap[issue.type] || "地震情報";
+    const scaleStr = (e.maxScale !== undefined && e.maxScale !== -1) ? scaleMap[e.maxScale] : '調査中';
+    const hypName = h.name || '調査中';
+    const magStr = (h.magnitude !== undefined && h.magnitude !== -1) ? `M${h.magnitude}` : '調査中';
+    const depthStr = (h.depth !== undefined && h.depth !== -1) ? (h.depth === 0 ? "ごく浅い" : `約${h.depth}km`) : '調査中';
+
+    let tsMsg = "津波調査中";
+    if (e.domesticTsunami === "None" || e.domesticTsunami === "NonEffective") tsMsg = "津波の心配なし";
+    else if (e.domesticTsunami && e.domesticTsunami !== "Unknown" && e.domesticTsunami !== "Checking") tsMsg = "津波情報あり";
+
+    let title = `【${typeStr}】最大震度${scaleStr}`;
+    let body = `${hypName}で地震\nマグニチュード: ${magStr} / 震源の深さ: ${depthStr}\n${tsMsg}`;
+
+    if (pts.length > 0) {
+        body += `\n\n[観測震度]`;
+        const scalePrefMap = {};
+        pts.forEach(pt => {
+            const s = String(pt.scale);
+            const pref = pt.pref || pt.addr.match(/^(.+?[都道府県])/)?.[1] || "不明";
+            if (!scalePrefMap[s]) scalePrefMap[s] = new Set();
+            scalePrefMap[s].add(pref);
+        });
+
+        [70, 60, 55, 50, 45, 40, 30, 20, 10].forEach(s => {
+            if (scalePrefMap[s]) body += `\n震度${scaleMap[s]}: ${Array.from(scalePrefMap[s]).join('、')}`;
+        });
     }
-});
+    return { title, body };
+}
 
-// ★ 通知がタップされたときの処理（アプリを開く）
-self.addEventListener('notificationclick', (e) => {
-    e.notification.close();
-    e.waitUntil(
-        clients.matchAll({ type: 'window' }).then(windowClients => {
-            for (let i = 0; i < windowClients.length; i++) {
-                let client = windowClients[i];
-                if (client.url === '/' && 'focus' in client) {
-                    return client.focus();
-                }
+// ==========================================
+// 4. 地震APIの監視ループ（3秒ごと）
+// ==========================================
+let lastEventId = null;
+async function pollEarthquakeData() {
+    try {
+        const res = await fetch("https://api.p2pquake.net/v2/history?codes=551&limit=1");
+        const data = await res.json();
+        const latest = data[0];
+
+        if (latest && latest.id !== lastEventId) {
+            if (lastEventId !== null) {
+                console.log("🚨 新しい地震情報を検知しました。通知を送信します。");
+                const payload = createPushPayload(latest);
+                subscriptions.forEach(sub => {
+                    webpush.sendNotification(sub, JSON.stringify(payload)).catch(err => console.error(err));
+                });
             }
-            if (clients.openWindow) {
-                return clients.openWindow('/');
-            }
-        })
-    );
+            lastEventId = latest.id;
+        }
+    } catch (e) {
+        // console.error("APIポーリングエラー:", e.message); // ログが埋まるのを防ぐためコメントアウト
+    }
+}
+setInterval(pollEarthquakeData, 3000);
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`🚀 サーバー起動: PORT ${PORT}`);
+    console.log(`📡 P2P地震情報の監視を開始しました...`);
 });
