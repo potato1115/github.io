@@ -42,7 +42,6 @@
         .ticker-btn { right: 60px; }
         .settings-menu { position: absolute; top: 55px; right: 15px; z-index: 1100; background: #fff; color: #000; padding: 15px; border-radius: 8px; display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.2); font-size: 13px; width: 240px; }
         .settings-menu.active { display: block; }
-        
         .notify-btn { width: 100%; padding: 8px; background: #1e82e6; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 700; margin-top: 10px; font-size: 14px; }
         .notify-btn.granted { background: #4caf50; cursor: default; }
         .notify-btn.test-btn { background: #ff9800; margin-top: 6px; }
@@ -58,7 +57,8 @@
 
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.2; } 100% { opacity: 1; } }
         .epicenter-cross { color: #ff0000; font-size: 45px; font-weight: 700; text-shadow: 0 0 8px #fff; display: flex !important; align-items: center; justify-content: center; animation: blink 1s infinite; }
-        
+        .leaflet-tooltip { font-family: 'BIZ UDPGothic', sans-serif; font-size: 12px; padding: 6px 10px; border-radius: 4px; }
+
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
         .modal-container { background: var(--panel-bg); color: var(--text-main); width: 90%; max-width: 800px; height: 85%; max-height: 800px; border-radius: 12px; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.5); overflow: hidden; border: 1px solid var(--border-color); }
         .modal-header { background: #4b0082; color: #fff; padding: 15px 20px; font-size: 1.2em; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
@@ -76,7 +76,6 @@
         .result-item:hover { background: rgba(75, 0, 130, 0.1); }
         .result-main { font-weight: 700; font-size: 1.05em; margin-bottom: 4px; }
         .result-sub { font-size: 0.85em; opacity: 0.8; }
-        .result-scale-badge { padding: 4px 12px; border-radius: 4px; font-weight: 700; font-size: 1.1em; border: 1.5px solid #000; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
 
         @media screen and (max-width: 850px) {
             html, body { overflow-y: auto !important; height: auto !important; min-height: 100vh; }
@@ -194,6 +193,12 @@
 <script>
     if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
 
+    // ★ 色の設定
+    const colorMap = {
+        "70": {bg: "#8c0028", fg: "#fff"}, "60": {bg: "#be0000", fg: "#fff"}, "55": {bg: "#f03200", fg: "#fff"},
+        "50": {bg: "#ff9600", fg: "#000"}, "45": {bg: "#ffd200", fg: "#000"}, "40": {bg: "#ffff96", fg: "#000"},
+        "30": {bg: "#78e6dc", fg: "#000"}, "20": {bg: "#1e82e6", fg: "#fff"}, "10": {bg: "#3c5a82", fg: "#fff"}
+    };
     const scaleMap = { "10": "1", "20": "2", "30": "3", "40": "4", "45": "5弱", "50": "5強", "55": "6弱", "60": "6強", "70": "7" };
     const plotScaleMap = { "10": "1", "20": "2", "30": "3", "40": "4", "45": "5-", "50": "5+", "55": "6-", "60": "6+", "70": "7" };
     const issueTypeMap = { "ScalePrompt": "震度速報", "Destination": "震源に関する情報", "ScaleAndDestination": "震源・震度情報", "DetailScale": "各地の震度情報", "Foreign": "遠地地震情報" };
@@ -210,7 +215,7 @@
     let epicenterMarker = null;    
 
     // ==========================================
-    // ★ スマホ最適化：クラッシュ＆ズレ防止版 Canvas ★
+    // ★ 爆速Canvasエンジン（iOSクラッシュ防止＆座標修正版） ★
     // ==========================================
     const PointCanvasLayer = L.Layer.extend({
         initialize: function (points, isQuickReport) {
@@ -222,8 +227,7 @@
             this._map = map;
             this._canvas = L.DomUtil.create('canvas', 'leaflet-zoom-animated');
             this._canvas.style.pointerEvents = 'none';
-            // ★ スマホでのズーム挙動を完璧にするための超重要設定
-            this._canvas.style.transformOrigin = '0 0'; 
+            this._canvas.style.transformOrigin = '0 0'; // ズーム時の基準点を左上に固定
             
             map.getPane('overlayPane').appendChild(this._canvas);
             map.on('moveend zoomend viewreset resize', this._update, this);
@@ -246,8 +250,8 @@
             if (!this._map) return;
             const size = this._map.getSize();
             
-            // ★ iOS Safariの限界（Canvasが真っ白になる現象）を突破するため、パディングを0.3に調整
-            const pad = 0.3;
+            // ★ iOS Safariが真っ白にならないように、パディングを「安全な広さ（1.2倍）」に設定
+            const pad = 0.1;
             const padX = size.x * pad;
             const padY = size.y * pad;
             const width = Math.round(size.x + padX * 2);
@@ -257,28 +261,28 @@
             const topLeftLayer = L.point(centerPt.x - width / 2, centerPt.y - height / 2);
             
             this._topLeftLatLng = this._map.layerPointToLatLng(topLeftLayer);
-            
-            // 位置のリセット（これによりスケール倍率も自動的に1に戻る）
             L.DomUtil.setPosition(this._canvas, topLeftLayer);
             
+            this._canvas.style.transform = this._canvas.style.transform.replace(/ scale\([^\)]+\)/, '') + ' scale(1)';
+            
             const dpr = window.devicePixelRatio || 1;
-            this._canvas.width = width * dpr;
-            this._canvas.height = height * dpr;
+            
+            // 安全装置: Retinaディスプレイでも絶対にiOSの限界を超えないように上限を設ける
+            const MAX_DIMENSION = 3500;
+            const finalWidth = Math.min(width * dpr, MAX_DIMENSION);
+            const finalHeight = Math.min(height * dpr, MAX_DIMENSION);
+
+            this._canvas.width = finalWidth;
+            this._canvas.height = finalHeight;
             this._canvas.style.width = width + 'px';
             this._canvas.style.height = height + 'px';
 
             const ctx = this._canvas.getContext('2d');
-            ctx.scale(dpr, dpr);
+            ctx.scale(finalWidth / width, finalHeight / height);
             this._draw(topLeftLayer, ctx, width, height);
         },
         _draw: function (topLeftLayer, ctx, width, height) {
             ctx.clearRect(0, 0, width, height);
-
-            const colorMap = {
-                "70": {bg: "#8c0028", fg: "#fff"}, "60": {bg: "#be0000", fg: "#fff"}, "55": {bg: "#f03200", fg: "#fff"},
-                "50": {bg: "#ff9600", fg: "#000"}, "45": {bg: "#ffd200", fg: "#000"}, "40": {bg: "#ffff96", fg: "#000"},
-                "30": {bg: "#78e6dc", fg: "#000"}, "20": {bg: "#1e82e6", fg: "#fff"}, "10": {bg: "#3c5a82", fg: "#fff"}
-            };
 
             ctx.lineWidth = 1.5;
             ctx.strokeStyle = "#000";
@@ -406,6 +410,7 @@
         searchCache = data;
         const resultsArea = document.getElementById('search-results-list');
         if (data.length === 0) { resultsArea.innerHTML = '<div style="padding:30px; text-align:center; font-weight:700;">該当する地震データが見つかりませんでした。</div>'; return; }
+        
         let html = '';
         data.forEach(eq => {
             const e = eq.earthquake || {}, h = e.hypocenter || {}, issue = eq.issue || {};
@@ -413,16 +418,22 @@
             const magStr = (h.magnitude !== undefined && h.magnitude !== -1) ? `M${h.magnitude}` : '調査中'; const hypName = h.name ? h.name : '震源調査中';
             const ts = e.domesticTsunami; let tsMsg = "";
             if (ts === "Unknown" || ts === "Checking" || ts === undefined) tsMsg = "津波調査中"; else if (ts === "None" || ts === "NonEffective") tsMsg = "津波の心配なし"; else tsMsg = "<span style='color:red'>津波情報あり</span>";
-            let badgeClass = `scale-${e.maxScale}`; if (e.maxScale === undefined || e.maxScale === -1) badgeClass = 'scale-10';
-            html += `<div class="result-item" onclick="selectHistoryItem('${eq.id}')"><div><div class="result-main">【${typeStr}】${hypName} (${magStr})</div><div class="result-sub">発生：${e.time || '不明'} ｜ ${tsMsg}</div></div><div class="result-scale-badge ${badgeClass}">震度 ${plotScaleStr}</div></div>`;
+            
+            // ★ バグ修正：色が消えないように、インラインスタイルで確実に塗る
+            let c = colorMap[e.maxScale] || {bg:"#555", fg:"#fff"};
+            let badgeStyle = `background:${c.bg}; color:${c.fg}; padding:4px 12px; border-radius:4px; font-weight:700; font-size:1.1em; border:1.5px solid #000; box-shadow:0 2px 4px rgba(0,0,0,0.3); display:inline-block; text-align:center;`;
+            
+            window[`searchCache_${eq.id}`] = eq;
+            
+            html += `<div class="result-item" onclick="selectHistoryItemFromGlobal('${eq.id}')"><div><div class="result-main">【${typeStr}】${hypName} (${magStr})</div><div class="result-sub">発生：${e.time || '不明'} ｜ ${tsMsg}</div></div><div style="${badgeStyle}">震度 ${plotScaleStr}</div></div>`;
         });
         resultsArea.innerHTML = html;
     }
 
-    function selectHistoryItem(id) {
-        const d = searchCache.find(item => item.id === id);
+    window.selectHistoryItemFromGlobal = function(id) {
+        const d = window[`searchCache_${id}`];
         if (d) { isHistoryMode = true; updateDisplay(d, true); closeSearchModal(); }
-    }
+    };
 
     function updateDisplay(data, shouldFit) {
         currentData = data;
@@ -468,9 +479,13 @@
                     stationCache[pt.addr] = st || null;
                 }
                 if (st) {
-                    const lat = parseFloat(st.lat || st.latitude); const lng = parseFloat(st.lng || st.lon || st.longitude);
-                    bounds.push([lat, lng]);
-                    parsedCanvasPoints.push({ scale: pt.scale, addr: pt.addr, latLng: L.latLng(lat, lng) });
+                    // ★ バグ修正：座標を数値として正確に抽出し、undefinedによる真っ白フリーズを防ぐ
+                    const lat = parseFloat(st.lat || st.latitude); 
+                    const lng = parseFloat(st.lng || st.lon || st.longitude);
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                        bounds.push([lat, lng]);
+                        parsedCanvasPoints.push({ scale: pt.scale, addr: pt.addr, latLng: L.latLng(lat, lng) });
+                    }
                 }
             });
 
@@ -493,8 +508,8 @@
             }
 
             const isValidEpicenter = h.latitude !== undefined && h.latitude !== -1 && h.latitude !== 200 && h.name;
-            if (isValidEpicenter) {
-                const hPos = [h.latitude, h.longitude];
+            if (isValidEpicenter && !isNaN(parseFloat(h.latitude)) && !isNaN(parseFloat(h.longitude))) {
+                const hPos = [parseFloat(h.latitude), parseFloat(h.longitude)];
                 bounds.push(hPos);
                 epicenterMarker = L.marker(hPos, { icon: L.divIcon({ className: 'epicenter-cross', html: '×', iconSize: [50, 50] }), zIndexOffset: 1000 }).addTo(map);
             }
