@@ -120,11 +120,9 @@
     <label style="cursor:pointer; font-weight:700; display:block; margin-bottom:12px;">
         <input type="checkbox" id="dark-toggle" onchange="applySettings()"> ダークモード
     </label>
-    
     <label style="cursor:pointer; font-weight:700; display:block; margin-bottom:12px; border-bottom:1px solid #ddd; padding-bottom:10px;">
         <input type="checkbox" id="show-unknown-toggle" onchange="applySettings()"> 未入電（?）を表示
     </label>
-
     <button id="notify-btn" class="notify-btn" onclick="requestNotification()">🔔 通知を許可する</button>
     <button id="notify-test-btn" class="notify-btn test-btn" onclick="testNotification()" style="display:none;">📲 通知テストを送信</button>
 </div>
@@ -205,14 +203,15 @@
 <script>
     if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
 
-    // ★ 定数定義
     const scaleMap = { "10": "1", "20": "2", "30": "3", "40": "4", "45": "5弱", "50": "5強", "55": "6弱", "60": "6強", "70": "7" };
     const plotScaleMap = { "10": "1", "20": "2", "30": "3", "40": "4", "45": "5-", "50": "5+", "55": "6-", "60": "6+", "70": "7" };
     const issueTypeMap = { "ScalePrompt": "震度速報", "Destination": "震源に関する情報", "ScaleAndDestination": "震源・震度情報", "DetailScale": "各地の震度情報", "Foreign": "遠地地震情報" };
 
     const isMobile = window.innerWidth < 850;
     const initialZoom = isMobile ? 4 : 5;
-    const map = L.map('map', { zoomControl: false, preferCanvas: true }).setView([36.2, 138.2], initialZoom);
+    
+    // ★ ここに attributionControl: false を追加して右下の文字を消去！
+    const map = L.map('map', { zoomControl: false, preferCanvas: true, attributionControl: false }).setView([36.2, 138.2], initialZoom);
     const lightTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
     const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png');
     
@@ -235,18 +234,30 @@
             this._canvas = L.DomUtil.create('canvas', 'leaflet-zoom-animated');
             this._canvas.style.pointerEvents = 'none';
             map.getPane('overlayPane').appendChild(this._canvas);
+            
             map.on('moveend zoomend viewreset resize', this._update, this);
+            map.on('zoomanim', this._animateZoom, this);
+            
             this._update();
         },
         onRemove: function (map) {
             map.getPane('overlayPane').removeChild(this._canvas);
             map.off('moveend zoomend viewreset resize', this._update, this);
+            map.off('zoomanim', this._animateZoom, this);
+        },
+        _animateZoom: function (e) {
+            if (!this._topLeftLatLng) return;
+            const scale = this._map.getZoomScale(e.zoom);
+            const offset = this._map._latLngToNewLayerPoint(this._topLeftLatLng, e.zoom, e.center);
+            L.DomUtil.setTransform(this._canvas, offset, scale);
         },
         _update: function () {
             if (!this._map) return;
             const size = this._map.getSize();
             const bounds = this._map.getBounds();
-            const topLeft = this._map.latLngToLayerPoint(bounds.getNorthWest());
+            
+            this._topLeftLatLng = bounds.getNorthWest();
+            const topLeft = this._map.latLngToLayerPoint(this._topLeftLatLng);
 
             L.DomUtil.setPosition(this._canvas, topLeft);
             
@@ -283,20 +294,14 @@
 
                 if (cx < -30 || cx > parseFloat(this._canvas.style.width) + 30 || cy < -30 || cy > parseFloat(this._canvas.style.height) + 30) continue;
 
-                let size = 22;
-                let half = size / 2;
-                // ★ 未入電（不明な震度）の場合はグレー背景にする
+                let size = 22; let half = size / 2;
                 let color = colorMap[p.scale] || {bg:"#555", fg:"#fff"};
 
                 ctx.fillStyle = color.bg;
                 ctx.beginPath();
-                if (this.isQuickReport) {
-                    ctx.rect(cx - half, cy - half, size, size); 
-                } else {
-                    ctx.arc(cx, cy, half, 0, 2 * Math.PI); 
-                }
-                ctx.fill();
-                ctx.stroke();
+                if (this.isQuickReport) { ctx.rect(cx - half, cy - half, size, size); } 
+                else { ctx.arc(cx, cy, half, 0, 2 * Math.PI); }
+                ctx.fill(); ctx.stroke();
 
                 ctx.fillStyle = color.fg;
                 ctx.fillText(plotScaleMap[p.scale] || "?", cx, cy + 1);
@@ -309,32 +314,21 @@
 
     map.on('mousemove', function(e) {
         if (!currentCanvasLayer || !currentCanvasLayer.points || currentCanvasLayer.points.length === 0) return;
-        let layerPt = e.layerPoint;
-        let minDist = 15; 
-        let closest = null;
-
+        let layerPt = e.layerPoint; let minDist = 15; let closest = null;
         for (let i = currentCanvasLayer.points.length - 1; i >= 0; i--) {
             let p = currentCanvasLayer.points[i];
             let pt = map.latLngToLayerPoint(p.latLng);
             let d = Math.sqrt(Math.pow(pt.x - layerPt.x, 2) + Math.pow(pt.y - layerPt.y, 2));
             if (d < minDist) { minDist = d; closest = p; break; }
         }
-
         if (closest !== hoveredPoint) {
             hoveredPoint = closest;
             if (closest) {
-                // ★ ツールチップで未入電を分かりやすく表示
                 const sStr = scaleMap[closest.scale] ? `震度${scaleMap[closest.scale]}` : "未入電";
-                mapTooltip.setLatLng(closest.latLng)
-                          .setContent(`<div style="font-family:'BIZ UDPGothic'; text-align:center;"><b>【${sStr}】</b><br>${closest.addr}</div>`)
-                          .addTo(map);
-            } else {
-                mapTooltip.removeFrom(map);
-            }
+                mapTooltip.setLatLng(closest.latLng).setContent(`<div style="font-family:'BIZ UDPGothic'; text-align:center;"><b>【${sStr}】</b><br>${closest.addr}</div>`).addTo(map);
+            } else { mapTooltip.removeFrom(map); }
         }
     });
-    // ==========================================
-
 
     function checkNotificationStatus() {
         const btn = document.getElementById('notify-btn'); const testBtn = document.getElementById('notify-test-btn');
@@ -357,28 +351,19 @@
     }
 
     function toggleSettings() { document.getElementById('settings-menu').classList.toggle('active'); }
-    
-    // ★ 設定の保存と即時反映
     function applySettings() {
         const isDark = document.getElementById('dark-toggle').checked;
         const showUnknown = document.getElementById('show-unknown-toggle').checked;
-        
         localStorage.setItem('eq_settings', JSON.stringify({ isDark, source: 'p2p', showUnknown }));
         document.body.classList.toggle('dark-theme', isDark);
-        
-        if (isDark) { map.removeLayer(lightTiles); darkTiles.addTo(map); } 
-        else { map.removeLayer(darkTiles); lightTiles.addTo(map); }
-        
-        // 設定が変わったら、即座にマップを再描画してピンの表示/非表示を切り替える
+        if (isDark) { map.removeLayer(lightTiles); darkTiles.addTo(map); } else { map.removeLayer(darkTiles); lightTiles.addTo(map); }
         if (currentData) updateDisplay(currentData, false);
-        
         if (!pollingInterval) { fetchLatestP2P(); pollingInterval = setInterval(fetchLatestP2P, 3000); }
     }
-
     function loadSettings() {
         const saved = JSON.parse(localStorage.getItem('eq_settings') || '{"isDark":false, "source":"p2p", "showUnknown":true}');
         document.getElementById('dark-toggle').checked = saved.isDark;
-        document.getElementById('show-unknown-toggle').checked = saved.showUnknown !== false; // デフォルトtrue
+        document.getElementById('show-unknown-toggle').checked = saved.showUnknown !== false;
         applySettings();
     }
 
@@ -437,7 +422,6 @@
         if (d) { isHistoryMode = true; updateDisplay(d, true); closeSearchModal(); }
     }
 
-    // ★ 描画処理：未入電フィルタリング対応
     function updateDisplay(data, shouldFit) {
         currentData = data;
         const e = data.earthquake || {}, h = e.hypocenter || {}, pts = data.points || [], issue = data.issue || {};
@@ -460,30 +444,19 @@
         mapTooltip.removeFrom(map);
         
         const content = document.getElementById('points-content');
-        
         if (pts.length === 0) { 
             content.innerHTML = '<div style="padding: 10px; color: #666;">詳細な観測データは現在入電待ちです...</div>'; 
         } else {
-            const grouped = {};
-            const parsedCanvasPoints = [];
-            const bounds = [];
-            
-            // ★ 設定から「未入電を表示するかどうか」を取得
+            const grouped = {}; const parsedCanvasPoints = []; const bounds = [];
             const showUnknown = document.getElementById('show-unknown-toggle').checked;
 
             pts.forEach(pt => {
-                const s = String(pt.scale); 
-                const isUnknownScale = !scaleMap[s]; // 10〜70の正規の震度以外は「未入電」と判定
-                
-                // ★ 未入電を非表示に設定している場合はスキップして処理しない
+                const s = String(pt.scale); const isUnknownScale = !scaleMap[s];
                 if (isUnknownScale && !showUnknown) return;
                 
-                // リスト上で未入電だけを別枠でまとめるためのキー
                 const groupKey = isUnknownScale ? "unknown" : s;
                 const pref = pt.pref || (pt.addr.match(/^(.+?[都道府県])/)?.[1]) || "不明";
-                
-                if (!grouped[groupKey]) grouped[groupKey] = {}; 
-                if (!grouped[groupKey][pref]) grouped[groupKey][pref] = new Set();
+                if (!grouped[groupKey]) grouped[groupKey] = {}; if (!grouped[groupKey][pref]) grouped[groupKey][pref] = new Set();
                 grouped[groupKey][pref].add(getCityName(pt.addr));
 
                 let st = stationCache[pt.addr];
@@ -493,14 +466,12 @@
                     stationCache[pt.addr] = st || null;
                 }
                 if (st) {
-                    const lat = parseFloat(st.lat || st.latitude);
-                    const lng = parseFloat(st.lng || st.lon || st.longitude);
+                    const lat = parseFloat(st.lat || st.latitude); const lng = parseFloat(st.lng || st.lon || st.longitude);
                     bounds.push([lat, lng]);
                     parsedCanvasPoints.push({ scale: pt.scale, addr: pt.addr, latLng: L.latLng(lat, lng) });
                 }
             });
 
-            // 左サイドバーのリスト作成
             let listHtml = '';
             [70, 60, 55, 50, 45, 40, 30, 20, 10].forEach(s => {
                 if (grouped[s]) {
@@ -508,17 +479,12 @@
                     for (const pref in grouped[s]) listHtml += `<div class="pref-block"><div class="pref-name">【${pref}】</div><div class="list-points">${Array.from(grouped[s][pref]).join('、')}</div></div>`;
                 }
             });
-            
-            // ★ リストの一番下に「未入電地域」ブロックを追加
             if (grouped["unknown"]) {
                 listHtml += `<div><div class="list-group-header" style="background:#555; color:#fff;">未入電地域</div></div>`;
-                for (const pref in grouped["unknown"]) {
-                    listHtml += `<div class="pref-block"><div class="pref-name">【${pref}】</div><div class="list-points">${Array.from(grouped["unknown"][pref]).join('、')}</div></div>`;
-                }
+                for (const pref in grouped["unknown"]) listHtml += `<div class="pref-block"><div class="pref-name">【${pref}】</div><div class="list-points">${Array.from(grouped["unknown"][pref]).join('、')}</div></div>`;
             }
             content.innerHTML = listHtml;
 
-            // Canvasレイヤーを一瞬で地図に貼り付け
             if (parsedCanvasPoints.length > 0) {
                 currentCanvasLayer = new PointCanvasLayer(parsedCanvasPoints, issue.type === "ScalePrompt");
                 map.addLayer(currentCanvasLayer);
